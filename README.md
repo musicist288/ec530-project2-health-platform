@@ -37,9 +37,13 @@ installed.
 
 ### Documentation
 
-The system design documentation is in the `docs/` folder.
+The system design documentation is in the `docs/` folder. While much of
+it can be viewed in its source form, the documentation is also
+[hosted here](https://ec530-project2.josephrossi.us/)
 
-> TODO: Setup sphinx docs and link to it.
+If you want to author or build documentation you'll need to install the dependencies from `docs/requirements.txt`. The documentation can then
+be built using `make html`. You can then open the `_build/html/index.html`
+to see the generated documentation.
 
 ## Development Guidelines
 
