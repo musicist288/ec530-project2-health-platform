@@ -10,9 +10,8 @@ Welcome to MedOps's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   devices
    api
-
+   devices
 
 Indices and tables
 ==================
