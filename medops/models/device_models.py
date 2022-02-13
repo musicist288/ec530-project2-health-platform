@@ -4,8 +4,7 @@ when loaded from the data store.
 """
 
 from typing import (
-    Optional,
-    Union
+    Optional
 )
 from datetime import datetime
 from dataclasses import dataclass
@@ -103,14 +102,37 @@ class Device:
 
     """
     device_id: int
-    device_type: DeviceType
-    current_firmware_version: str
+    current_firmware_version: Optional[str]
     date_of_purchase: Optional[datetime]
     serial_number: Optional[str]
     mac_address: Optional[str]
-    assigned_user: Optional[User]
-    assigner: Optional[Union[int, User]]
+    assigned_user: Optional[int]
+    assigner: Optional[int]
+    # These fields are validated by property
     name: str
+    device_type: int
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, value: str):
+        if not isinstance(value, str):
+            raise ValueError("name must be a string.")
+        if not value.strip():
+            raise ValueError("name cannot be blank.")
+        self.__name = value
+
+    @property
+    def device_type(self):
+        return self.__device_type
+
+    @device_type.setter
+    def device_type(self, value: int):
+        if not isinstance(value, int):
+            raise ValueError("device_type must be an integer")
+        self.__device_type = value
 
     def to_dict(self) -> dict:
         """Convert the model into a dict representation for serialization.
@@ -121,14 +143,14 @@ class Device:
         """
 
         return dict(device_id=self.device_id,
+                    name=self.name,
                     device_type=self.device_type,
                     current_firmware_version=self.current_firmware_version,
                     date_of_purchase=self.date_of_purchase,
                     serial_number=self.serial_number,
                     mac_address=self.mac_address,
                     assigned_user=self.assigned_user,
-                    assigner=self.assigner,
-                    name=self.name)
+                    assigner=self.assigner)
 
 
 # XXX: This is just a placeholder until there is a proper
@@ -209,6 +231,6 @@ class DeviceStorage:
     def delete(self, device_id: int) -> bool:
         devices = [d for d in self.devices if d.device_id != device_id]
         deleted = len(devices) < len(self.devices)
-        self.devices = deleted
+        self.devices = devices
         self._save()
         return deleted

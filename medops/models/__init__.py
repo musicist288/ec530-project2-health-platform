@@ -24,9 +24,14 @@ def init_db(app, config):
     if isinstance(db_file, str):
         db_file = Path(db_file)
 
-    app.config['STORAGE'] = DeviceStorage(db_file)
+    app.config['STORAGE'] = {
+        "devices": DeviceStorage(db_file)
+    }
 
-def get_storage() -> DeviceStorage:
+def get_storage(name) -> DeviceStorage:
     """Return the configured storage
     """
-    return current_app.config['STORAGE']
+    if name not in current_app.config['STORAGE']:
+        raise ValueError(f"Storage for {name} does not exist")
+
+    return current_app.config['STORAGE'][name]
