@@ -6,16 +6,24 @@
 Welcome to MedOps's documentation!
 ==================================
 
+MedOps is a platform for monitoring patients at home or in hospitals. This
+application is in its infancy, so abstractions and API documentations are
+subject to change at any time without notice until a stable architecture
+emerges. Be sure to check back for updates. The plan is for the different data
+models to be loosely coupled such that each model (devices, users, data, etc.)
+has its own set of REST APIs.
+
+The source code for MedOps is hosted on `GitHub
+<https://github.com/musicist288/ec530-project2-health-platform>`_.
+
+
+API Reference
+-------------
+If you are looking for information on the data models and APIs being developed
+you're in the right spot, check out the contents below.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-   api
    devices
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   api

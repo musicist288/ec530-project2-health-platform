@@ -22,7 +22,7 @@ class User:
     pass
 
 # TODO: Figure out how to get the format string to render correctly
-# when generating documentation
+# when generating documentation.
 DataTypes = set([
     "integer",
     "float",
@@ -30,10 +30,10 @@ DataTypes = set([
     "string"
 ])
 
-
 @dataclass
 class DeviceType:
-    """Model class for the device type
+    """The DeviceType model classifies the type of device and what
+    data format is represented from that device.
 
     Parameters
     ----------
@@ -59,15 +59,27 @@ class DeviceType:
 
 @dataclass
 class Device:
-    """Model class for medical devices
+    """The `Device` model represents the metadata associated with a device
+    that can be collect data from users. When creating a device, you must
+    provide an approriate `device_type`. The `device_type` is what governs what
+    kind of data is collected from the device. The assumption here is that each
+    device can only report one type of data. If a device needs to report multiple
+    types of data (for example, the same can measure heart rate and blood pressure),
+    the device should be entered twice, one for each device type. If you need to
+    associate the data later, make sure to enter the `serial_number` field.
 
     Parameters
     ----------
         device_id : int
-            The identifier for the device.
+            An internal identifier for the device. This field will be auto-generated
+            when a new device is created.
 
         device_type : DeviceType
-            Metadata about the type of data the device can collect.
+            Metadata about the type of data the device can collect. This field
+            is required.
+
+        name : str
+            A user facing name for the device.
 
         current_firmware_version : str
             Latest information about what firmware version was loaded
@@ -89,8 +101,6 @@ class Device:
         assigner : Optional[User]
             The medical profession who assigned the device to the assigned user.
 
-        name : str
-            A summary field for describing the name of the device.
     """
     device_id: int
     device_type: DeviceType
@@ -103,7 +113,7 @@ class Device:
     name: str
 
     def to_dict(self) -> dict:
-        """Convert the model into a dict representation for serialization
+        """Convert the model into a dict representation for serialization.
 
         Returns
         -------
