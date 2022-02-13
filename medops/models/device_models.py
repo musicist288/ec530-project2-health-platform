@@ -7,7 +7,10 @@ from typing import (
     Optional
 )
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    asdict
+)
 from pathlib import Path
 import copy
 import json
@@ -54,6 +57,15 @@ class DeviceType:
     device_type_id: int
     name: str
     data_type: str
+
+    def to_dict(self) -> dict:
+        """Convert the model into a dict representation for serialization.
+
+        Returns
+        -------
+        A dictionary with keys/value pairs of the device attributes
+        """
+        return asdict(self)
 
 
 @dataclass
@@ -141,16 +153,7 @@ class Device:
         -------
         A dictionary with keys/value pairs of the device attributes
         """
-
-        return dict(device_id=self.device_id,
-                    name=self.name,
-                    device_type=self.device_type,
-                    current_firmware_version=self.current_firmware_version,
-                    date_of_purchase=self.date_of_purchase,
-                    serial_number=self.serial_number,
-                    mac_address=self.mac_address,
-                    assigned_user=self.assigned_user,
-                    assigner=self.assigner)
+        return asdict(self)
 
 
 # XXX: This is just a placeholder until there is a proper
