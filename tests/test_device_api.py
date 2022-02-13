@@ -100,6 +100,7 @@ def test_create_device_empty_required_field(client):
     assert "count" in resp.json
     assert resp.json["count"] == len(errors)
 
+
 def test_read_device(client):
     _, data = create_valid_device(client)
     device_id = data.json["device_id"]
