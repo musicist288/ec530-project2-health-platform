@@ -1,0 +1,16 @@
+@media screen and (min-width: 876px) {
+
+div.document {
+    width: 80%;
+    max-width: 1280px;
+}
+
+div.sphinxsidebar {
+    width: 300px;
+}
+
+div.bodywrapper {
+    margin-left: 300px;
+}
+
+}

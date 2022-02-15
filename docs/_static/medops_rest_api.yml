@@ -1,0 +1,259 @@
+openapi: "3.0.0"
+info:
+  description: "This document provides the specification for the HTTP api for the different services provided by the MedOps application for managing hospital data."
+  version: "1.0.0"
+  title: "MedOps"
+  license:
+    name: "MIT License"
+    url: "https://mit-license.org/"
+servers:
+  - url: "https://api.fakeserver.com"
+tags:
+- name: "Devices"
+  description: "Manage Medical Devices"
+paths:
+  /device:
+    get:
+      summary: "Query for devices in the system"
+      tags:
+      - "Devices"
+      parameters:
+        - in: "query"
+          name: "user_assigned"
+          description: "Query for devices assigned to a user"
+          required: false
+          schema:
+            type: "integer"
+        - in: "query"
+          name: "device_type"
+          description: "Query devices by their device type id."
+          required: false
+          schema:
+            type: "integer"
+      responses:
+        "200":
+          description: "Query successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  devices:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/Device-Read"
+                  count:
+                    type: "integer"
+    post:
+      tags:
+      - "Devices"
+      summary: "Add a new device to the system."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                schema:
+                  $ref: "#/components/schemas/Device-Create"
+      responses:
+        "400":
+          description: "Invalid content-type or malform body."
+          content:
+            text/plain:
+              schema:
+                type: "string"
+        "422":
+          description: "Unprocessable Entity. The request was parsed but the data in the request."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /device/{device_id}:
+    parameters:
+      - name: device_id
+        in: path
+        description: The ID of the device to read.
+        required: true
+        schema:
+          type: "integer"
+    get:
+      summary: "Get information about a specific device."
+      tags:
+      - "Devices"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device-Read"
+        "404":
+          description: "Device not found"
+    put:
+      summary: "Update an existing device"
+      tags:
+      - "Devices"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                schema:
+                  $ref: "#/components/schemas/Device-Update"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device-Read"
+    delete:
+      summary: "Delete a device from the system."
+      tags:
+      - "Devices"
+      responses:
+        "405":
+          description: "Not allowed. Devices can't be deleted once they have been used to collect data."
+        "200":
+          description: "Device deleted successfully."
+  /device-type:
+    get:
+      summary: "Get a list of device types"
+      tags:
+      - "Device Type"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTypeFull"
+    post:
+      summary: "Create a new device type"
+      tags:
+        - "Device Type"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                schema:
+                  $ref: "#/components/schemas/DeviceTypeBase"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTypeFull"
+        "400":
+          description: "Bad request"
+          content:
+            text/plain:
+              schema:
+                type: string
+        "422":
+          description: "Unprocessable. See list of errors returned for details."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /device-type/{device_type_id}:
+    parameters:
+      - name: device_type_id
+        in: path
+        description: The ID of the device type.
+        required: true
+        schema:
+          type: "integer"
+    get:
+      summary: "Get a device type"
+      tags:
+      - "Device Type"
+      responses:
+        "404":
+          description: "Not found"
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTypeFull"
+    delete:
+      summary: "Delete a device type"
+      tags:
+        - "Device Type"
+      responses:
+        "200":
+          description: "OK"
+        "405":
+          description: "Not allowed. Device types cannot be deleted when there is at least one device that is assigned the type."
+components:
+  schemas:
+    Device-Create:
+      allOf:
+        - $ref: "#/components/schemas/Device-Update"
+    Device-Read:
+      allOf:
+        - $ref: "#/components/schemas/Device-Update"
+        - type: "object"
+          properties:
+            device_id:
+              type: "integer"
+    Device-Update:
+      type: "object"
+      description: "When updating an existing device, the following fields may be passed. If a field is omitted, the model will be partially updated with the data provided. The device_id fiels is omitted here as it can't be updated once the device is created. However if passed in the request body, its value will be ignored."
+      properties:
+        name:
+          type: "string"
+          description: "The descriptive name of the device."
+        date_of_purchase:
+          type: string
+          nullable: true
+        serial_number:
+          type: string
+          nullable: true
+        user_assignment:
+          description: "The user ID of the patient to whom the device is assigned. If updating this field, the assigner field must also be specified. If clearning this field by setting it to null, the assigner field will be ignored and cleard."
+          type: integer
+          nullable: true
+        assigner:
+          type: integer
+          nullable: true
+          description: "The user ID of the medical staff who assigned the device to the user. This field is required if updating the user_assignment field to a non-null patient. If ths user_assignment field is set to null, this field will be cleared."
+        device_type:
+          type: integer
+          description: "The device type ID of the type of device."
+        current_firmware_version:
+          type: string
+          description: "A string indicating the current firmware version running on the device."
+    DeviceTypeFull:
+      allOf:
+        - $ref: "#/components/schemas/DeviceTypeBase"
+        - type: "object"
+          properties:
+            device_type_id:
+              type: "integer"
+              description: "The identifier for this device type."
+    DeviceTypeBase:
+      type: "object"
+      properties:
+        description:
+          description: "Description of the device type."
+        data_type:
+          description: "The device "
+          type: "string"
+          enum: ["number", "number_array", "string", "string_array"]
+    Error-UnprocessableEntity:
+      type: "object"
+      properties:
+        errors:
+          type: "array"
+          items:
+            type: "string"
+        count:
+          type: "integer"
