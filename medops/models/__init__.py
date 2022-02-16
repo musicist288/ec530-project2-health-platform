@@ -2,9 +2,8 @@
     Models contain the in-memory storage data
 """
 from pathlib import Path
-from .device_models import DeviceStorage
+from .device_models import DeviceStorage, Storage
 from .device_models import Device # noqa: F401
-from .device_models import DeviceType # noqa: F401
 
 from flask import current_app
 
@@ -19,16 +18,13 @@ def init_db(app, config):
     config : dict
         The application configuration.
     """
-    db_file = config["DB_FILENAME"]
+    devices_file = config["DEVICES_FILENAME"]
+    if isinstance(devices_file, str):
+        devices_file = Path(devices_file)
 
-    if isinstance(db_file, str):
-        db_file = Path(db_file)
+    app.config['STORAGE'] = {"devices": DeviceStorage(devices_file)}
 
-    app.config['STORAGE'] = {
-        "devices": DeviceStorage(db_file)
-    }
-
-def get_storage(name) -> DeviceStorage:
+def get_storage(name) -> Storage:
     """Return the configured storage
     """
     if name not in current_app.config['STORAGE']:

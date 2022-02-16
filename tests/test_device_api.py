@@ -15,7 +15,7 @@ def client():
 
     app = Flask(__name__)
     app.register_blueprint(apis.DEVICES_API_BLUEPRINT, url_prefix="/devices")
-    models.init_db(app, {"DB_FILENAME": db_filename})
+    models.init_db(app, {"DEVICES_FILENAME": db_filename})
 
     with app.test_client() as testing_client:
         with app.app_context():
@@ -28,11 +28,8 @@ def client():
 def create_valid_device(client):
     request_data = dict(
         name="Thermometer-0001",
-        device_type=1,
         date_of_purchase="2021-03-22",
         serial_number=None,
-        assigned_user=None,
-        assigner=None,
         current_firmware_version="1.0.0"
     )
     resp = client.post("/devices/", json=request_data)
@@ -45,11 +42,8 @@ def test_create_model_happy(client):
     data = resp.json
     fields = [
         'name',
-        'device_type',
         'date_of_purchase',
         'serial_number',
-        'assigned_user',
-        'assigner',
         'current_firmware_version'
     ]
 
@@ -65,8 +59,6 @@ def test_create_device_missing_required_fields(client):
         device_type=1,
         date_of_purchase="2021-03-22",
         serial_number=None,
-        assigned_user=None,
-        assigner=None,
         current_firmware_version="1.0.0"
     )
     resp = client.post("/devices/", json=request_data)
@@ -83,11 +75,8 @@ def test_create_device_empty_required_field(client):
     request_data = dict(
         # Omit name which is a required field.
         name="",
-        device_type=1,
         date_of_purchase="2021-03-22",
         serial_number=None,
-        assigned_user=None,
-        assigner=None,
         current_firmware_version="1.0.0"
     )
     resp = client.post("/devices/", json=request_data)
@@ -141,7 +130,7 @@ def test_update_device(client):
     _, resp = create_valid_device(client)
     device_path = f"/devices/{resp.json['device_id']}"
     data = copy.deepcopy(resp.json)
-    data['assigned_user'] = 3
+    data['serial_number'] = "testing"
 
     resp = client.put(device_path, json=data)
     assert resp.status_code == 200

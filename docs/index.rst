@@ -23,7 +23,7 @@ If you are looking for information on the data models and APIs being developed
 you're in the right spot, check out the contents below.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    devices
    api

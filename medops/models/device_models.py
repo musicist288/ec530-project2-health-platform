@@ -17,77 +17,18 @@ import json
 
 
 @dataclass
-class User:
-    """
-        Placeholder model for when users are in place.
-    """
-    pass
-
-# TODO: Figure out how to get the format string to render correctly
-# when generating documentation.
-DataTypes = set([
-    "integer",
-    "float",
-    "number_array",
-    "string"
-])
-
-@dataclass
-class DeviceType:
-    """The DeviceType model classifies the type of device and what
-    data format is represented from that device.
-
-    Parameters
-    ----------
-        device_type_id : int
-            The identifier for the device
-
-        name : str
-            Short name for the type of device
-
-        data_type : str
-            The type of data expected from the device. The data
-            type must be one of the following supported types:
-
-            - "integer",
-            - "float",
-            - "number_array",
-            - "string"
-    """
-    device_type_id: int
-    name: str
-    data_type: str
-
-    def to_dict(self) -> dict:
-        """Convert the model into a dict representation for serialization.
-
-        Returns
-        -------
-        A dictionary with keys/value pairs of the device attributes
-        """
-        return asdict(self)
-
-
-@dataclass
 class Device:
     """The `Device` model represents the metadata associated with a device
-    that can be collect data from users. When creating a device, you must
-    provide an approriate `device_type`. The `device_type` is what governs what
-    kind of data is collected from the device. The assumption here is that each
-    device can only report one type of data. If a device needs to report multiple
-    types of data (for example, the same can measure heart rate and blood pressure),
-    the device should be entered twice, one for each device type. If you need to
-    associate the data later, make sure to enter the `serial_number` field.
+    that can be collect data from users. Note that the device does not indicate
+    anything about what data is collected from the device. When recording data
+    the device id should be tagged by the recorded data. See the Data
+
 
     Parameters
     ----------
         device_id : int
             An internal identifier for the device. This field will be auto-generated
             when a new device is created.
-
-        device_type : DeviceType
-            Metadata about the type of data the device can collect. This field
-            is required.
 
         name : str
             A user facing name for the device.
@@ -105,24 +46,14 @@ class Device:
         mac_address : Optional[str]
             If the device is a networked device, this field should
             contain the MAC address.
-
-        assigned_user : Optional[User]
-            The user for which the device is currently collecting information.
-
-        assigner : Optional[User]
-            The medical profession who assigned the device to the assigned user.
-
     """
     device_id: int
     current_firmware_version: Optional[str]
     date_of_purchase: Optional[datetime]
     serial_number: Optional[str]
     mac_address: Optional[str]
-    assigned_user: Optional[int]
-    assigner: Optional[int]
     # These fields are validated by property
     name: str
-    device_type: int
 
     @property
     def name(self):
@@ -136,15 +67,40 @@ class Device:
             raise ValueError("name cannot be blank.")
         self.__name = value
 
-    @property
-    def device_type(self):
-        return self.__device_type
+    def to_dict(self) -> dict:
+        """Convert the model into a dict representation for serialization.
 
-    @device_type.setter
-    def device_type(self, value: int):
-        if not isinstance(value, int):
-            raise ValueError("device_type must be an integer")
-        self.__device_type = value
+        Returns
+        -------
+        A dictionary with keys/value pairs of the device attributes
+        """
+        return asdict(self)
+
+
+@dataclass
+class DeviceDatum:
+    """Base class for different device datum types. This class should
+    not be used directly.
+
+    Parameters
+    ----------
+        device_id : int
+            The identifier of the device that recired that recorded the data.
+            This field is optional.
+
+        assigned_user : int
+            The user ID of the patient from which the datum was collected.
+
+        received_time : datetime
+            The datetime stamp when the datum was received by the system.
+
+        collection_time : datetime
+            The datetime stamp when the datum was collected on the device.
+    """
+    device_id: int
+    assigned_user: int
+    received_time: datetime
+    collection_time: datetime
 
     def to_dict(self) -> dict:
         """Convert the model into a dict representation for serialization.
@@ -156,13 +112,135 @@ class Device:
         return asdict(self)
 
 
+@dataclass
+class TemperatureDatum(DeviceDatum):
+    """A temperature datum
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    deg_c : float
+        Temperature value in degrees C
+    """
+    deg_c: float
+
+
+@dataclass
+class BloodPressureDatum(DeviceDatum):
+    """A blood pressure datum
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    systolic : float
+        The systolic measurement
+    diastolic : float
+        The diastolic measurement
+    """
+    systolic: float
+    diastolic: float
+
+
+@dataclass
+class GlucometerDatum(DeviceDatum):
+    """A glucose level reading
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    mg_dl : int
+        The blood sugar level in milligrams per deciliter
+    """
+    mg_dl: int
+
+
+@dataclass
+class PulseDatum(DeviceDatum):
+    """A heart rate dataum
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    bpm : int
+        The measured heart rate in beats per minute.
+    """
+    bpm: int
+
+
+@dataclass
+class WeightDatum(DeviceDatum):
+    """A weight datum
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    grams : int
+        Weight record in grams
+    """
+    grams: int
+
+
+@dataclass
+class BloodSaturationDatum(DeviceDatum):
+    """Blood saturation datum
+
+    See :py:class:`~DeviceDatum` for the other constructor parameter descriptions.
+
+    Parameters
+    ----------
+    percentage : float
+        The blood saturation percentage.
+    """
+    percentage: float
+
+
+@dataclass
+class DeviceAssignment:
+    """The device assignment is a record of time periods when a device has been
+    assigned to a user. Data collected during this time.
+
+    Parameters
+    ----------
+    device_id : int
+        The ID of the device assigned
+
+    patient_id : int
+        The user ID of the patient to whom the device is assigned.
+
+    assigner_id : int
+        The user ID of the medical professional who authorized the device
+        to be assigned to the patient.
+
+    date_assigned : datetime
+        The start date and time when the user is assigned the device.
+
+    date_returned : Optional[datetime]
+        The date when the device is no longer recording data from the patient.
+        This field should be set to None
+    """
+
+    device_id: int
+    patient_id: int
+    assigner_id: int
+    date_assigned: datetime
+    date_returned: Optional[datetime]
+
+
 # XXX: This is just a placeholder until there is a proper
 # database backend.
-class DeviceStorage:
+class Storage:
+
+    model = None
+    id_field = None
 
     def __init__(self, filename: Path):
         self.filename = filename
-        self.devices = []
+        self.records = []
 
         # Load the file.
         self._loaded = False
@@ -171,7 +249,7 @@ class DeviceStorage:
 
     def _save(self):
         with self.filename.open("w") as handle:
-            data = [device.to_dict() for device in self.devices]
+            data = [device.to_dict() for device in self.records]
             json.dump(data, handle)
 
         if not self._loaded:
@@ -185,9 +263,9 @@ class DeviceStorage:
             if self.filename.exists():
                 with self.filename.open("r") as handle:
                     data = json.load(handle)
-                    self.devices = [Device(**d) for d in data]
+                    self.records = [self.model(**d) for d in data]
 
-                self._next_id = max([d.device_id for d in self.devices])
+                self._next_id = max([getattr(d, self.id_field) for d in self.records])
             else:
                 self._next_id = 1
 
@@ -196,44 +274,49 @@ class DeviceStorage:
     def query(self):
         pass
 
-    def get(self, device_id: int) -> Optional[Device]:
+    def get(self, record_id: int) -> Optional[Device]:
         to_return = None
 
-        for device in self.devices:
-            if device.device_id == device_id:
+        for device in self.records:
+            if getattr(device, self.id_field) == record_id:
                 to_return = copy.deepcopy(device)
 
         return to_return
 
-    def create(self, device: Device) -> Device:
-        if device.device_id is not None:
-            raise ValueError("device_id is an autoincrement file. It must be None when created")
+    def create(self, model):
+        if getattr(model, self.id_field) is not None:
+            raise ValueError(f"{self.id_filed} is an autoincrement file. It must be None when created")
 
-        device.device_id = self._next_id
+        setattr(model, self.id_field, self._next_id)
         self._next_id += 1
 
         # Create a deep copy of the device so user modifications
         # don't change anything.
-        for_storage = copy.deepcopy(device)
-        self.devices.append(for_storage)
+        for_storage = copy.deepcopy(model)
+        self.records.append(for_storage)
         self._save()
-        return device
+        return model
 
-    def update(self, device: Device) -> Device:
-        if device.device_id is None:
+    def update(self, model):
+        if getattr(model, self.id_field) is None:
             raise ValueError("Device does not exist.")
 
-        for_storage = copy.deepcopy(device)
+        for_storage = copy.deepcopy(model)
         # remove the old one
-        devices = [d for d in self.devices if d.device_id != device.device_id]
-        devices.append(for_storage)
-        self.devices = devices
+        models = [d for d in self.records if getattr(d, self.id_field) != getattr(model, self.id_field)]
+        models.append(for_storage)
+        self.records = models
         self._save()
-        return device
+        return model
 
-    def delete(self, device_id: int) -> bool:
-        devices = [d for d in self.devices if d.device_id != device_id]
-        deleted = len(devices) < len(self.devices)
-        self.devices = devices
+    def delete(self, record_id: int) -> bool:
+        models = [d for d in self.records if getattr(d, self.id_field) != record_id]
+        deleted = len(models) < len(self.records)
+        self.records = models
         self._save()
         return deleted
+
+
+class DeviceStorage(Storage):
+    model = Device
+    id_field = "device_id"

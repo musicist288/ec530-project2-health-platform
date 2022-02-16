@@ -44,7 +44,7 @@ def device_create():
 
     # Create an empty errors array
     errors = []
-    required_fields = ["device_type", "name"]
+    required_fields = ["name"]
     for field in required_fields:
         if field not in data.keys():
             errors.append(f"Missing required field: {field}")
@@ -54,10 +54,7 @@ def device_create():
             device = models.get_storage("devices").create(models.Device(
                 device_id=None,
                 name=data["name"],
-                device_type=data["device_type"],
                 current_firmware_version=data.get("current_firmware_version", None),
-                assigned_user=data.get("assigned_user"),
-                assigner=data.get("assigner", None),
                 mac_address=data.get("mac_address", None),
                 serial_number=data.get("serial_number", None),
                 date_of_purchase=data.get("date_of_purchase", None),
@@ -98,13 +95,10 @@ class DeviceEndpoint:
 
         editable_fields = [
             "name",
-            "device_type",
             "current_firmware_version",
             "date_of_purchase",
             "serial_number",
             "mac_address",
-            "assigned_user",
-            "assigner"
         ]
 
         # Create an empty errors array
