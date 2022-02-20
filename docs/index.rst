@@ -27,3 +27,4 @@ you're in the right spot, check out the contents below.
 
    devices
    api
+   hosting

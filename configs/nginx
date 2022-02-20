@@ -1,0 +1,28 @@
+server {
+	listen 80;
+	listen [::]:80;
+
+    root /path/to/application;
+    index index.html index.htm;
+
+    # If you are using a flat setup (i.e. not nesting this in an /api/ folder)
+    # rename this location to / and remove the rewrite line. Also delete the
+    # location / block below.
+    location /api/ {
+        rewrite ^/api(/.*) $1 break;
+        include proxy_params;
+        proxy_pass http://unix:/path/to/application/api.sock;
+    }
+
+    # This location will server ANY static files from the root path specified above,
+    # that are not interceted byt the /api/ location directive.
+	location / {
+		# First attempt to serve request as file, then
+		# as directory, then fall back to displaying a 404.
+		try_files $uri $uri/ =404;
+	}
+
+    # Change this to whavever domain name you may be matching against
+    # if applicable.
+	server_name <your server name>
+}

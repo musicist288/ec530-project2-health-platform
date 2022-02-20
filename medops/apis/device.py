@@ -25,7 +25,7 @@ DEVICES_API_BLUEPRINT = Blueprint("devices", __name__)
 
 @DEVICES_API_BLUEPRINT.route("/", methods=["GET"])
 def device_query():
-    pass
+    return "", 501
 
 @DEVICES_API_BLUEPRINT.route("/", methods=["POST"])
 def device_create():
