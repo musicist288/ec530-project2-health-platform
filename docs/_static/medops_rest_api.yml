@@ -31,6 +31,14 @@ paths:
       responses:
         "201":
           description: "Content accepted"
+        "422":
+          description: |
+            There was one or more errors due to malformed or missing
+            data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
   /device:
     get:
       summary: "Query for devices in the system"
