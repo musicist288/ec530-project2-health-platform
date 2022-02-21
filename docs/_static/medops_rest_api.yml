@@ -80,11 +80,14 @@ paths:
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                schema:
-                  $ref: "#/components/schemas/Device-Create"
+              $ref: "#/components/schemas/Device-Create"
       responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device-Read"
         "400":
           description: "Invalid content-type or malform body."
           content:
@@ -126,10 +129,7 @@ paths:
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                schema:
-                  $ref: "#/components/schemas/Device-Update"
+              $ref: "#/components/schemas/Device-Update"
       responses:
         "200":
           description: "Ok"
@@ -146,79 +146,6 @@ paths:
           description: "Not allowed. Devices can't be deleted once they have been used to collect data."
         "200":
           description: "Device deleted successfully."
-  /device-type:
-    get:
-      summary: "Get a list of device types"
-      tags:
-      - "Device Type"
-      responses:
-        "200":
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeviceTypeFull"
-    post:
-      summary: "Create a new device type"
-      tags:
-        - "Device Type"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                schema:
-                  $ref: "#/components/schemas/DeviceTypeBase"
-      responses:
-        "200":
-          description: "OK"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeviceTypeFull"
-        "400":
-          description: "Bad request"
-          content:
-            text/plain:
-              schema:
-                type: string
-        "422":
-          description: "Unprocessable. See list of errors returned for details."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error-UnprocessableEntity"
-  /device-type/{device_type_id}:
-    parameters:
-      - name: device_type_id
-        in: path
-        description: The ID of the device type.
-        required: true
-        schema:
-          type: "integer"
-    get:
-      summary: "Get a device type"
-      tags:
-      - "Device Type"
-      responses:
-        "404":
-          description: "Not found"
-        "200":
-          description: "OK"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeviceTypeFull"
-    delete:
-      summary: "Delete a device type"
-      tags:
-        - "Device Type"
-      responses:
-        "200":
-          description: "OK"
-        "405":
-          description: "Not allowed. Device types cannot be deleted when there is at least one device that is assigned the type."
 components:
   schemas:
     Device-Create:
@@ -304,6 +231,7 @@ components:
       properties:
         mg_dl:
           type: integer
+          minimum: 0
     HeartRateDatum:
       type: "object"
       properties:
@@ -315,12 +243,14 @@ components:
       properties:
         grams:
           type: integer
+          minimum: 0
     BloodSaturationDatum:
       type: "object"
       properties:
         percentage:
           type: number
           format: float
+          minimum: 0
     Datum:
       type: "object"
       required:
