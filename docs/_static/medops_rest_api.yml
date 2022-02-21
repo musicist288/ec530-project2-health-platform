@@ -12,6 +12,25 @@ tags:
 - name: "Devices"
   description: "Manage Medical Devices"
 paths:
+  /data:
+    post:
+      tags:
+      - "Data"
+      summary: "Post data from devices."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Datum"
+      responses:
+        "201":
+          description: "Content accepted"
   /device:
     get:
       summary: "Query for devices in the system"
@@ -257,3 +276,89 @@ components:
             type: "string"
         count:
           type: "integer"
+    TemperatureDatum:
+      type: "object"
+      properties:
+        deg_c:
+          type: number
+          format: float
+    BloodPressureDatum:
+      type: "object"
+      properties:
+        systolic:
+          type: number
+          format: float
+        diastolic:
+          type: number
+          format: float
+    GlucoseLevelDatum:
+      type: "object"
+      properties:
+        mg_dl:
+          type: integer
+    HeartRateDatum:
+      type: "object"
+      properties:
+        bpm:
+          type: integer
+          minimum: 0
+    WeightDatum:
+      type: "object"
+      properties:
+        grams:
+          type: integer
+    BloodSaturationDatum:
+      type: "object"
+      properties:
+        percentage:
+          type: number
+          format: float
+    Datum:
+      type: "object"
+      required:
+        - "device_id"
+        - "collection_time"
+        - "data_type"
+        - "data"
+      properties:
+        device_id:
+          type: integer
+          description: |
+            The identifier of the device from which the data was
+            collected.
+        assigned_user:
+          type: integer
+          description: |
+            The ID of the user from whom the data was collected. If
+            this field is omitted and the device is actively assigned
+            to a user, the data will logged with the actively assigned
+            user ID. If this field is present, it will take precedence.
+        collection_time:
+          type: string
+          format: date-time
+          description: |
+            The time which the data point was collected on the
+            device in an ISO-8601 format.
+        data_type:
+          type: "string"
+          description: |
+            The type of data being logged. The data object within
+            the request must match.
+          enum:
+          - "temperature"
+          - "blood_pressure"
+          - "oxygen_saturation"
+          - "glucose_level"
+          - "heart_rate"
+          - "weight"
+        data:
+          description: |
+            The value of the measurement. The schema for this data
+            must match the `data_type` provided.
+          oneOf:
+            - $ref: "#/components/schemas/TemperatureDatum"
+            - $ref: "#/components/schemas/BloodPressureDatum"
+            - $ref: "#/components/schemas/GlucoseLevelDatum"
+            - $ref: "#/components/schemas/HeartRateDatum"
+            - $ref: "#/components/schemas/WeightDatum"
+            - $ref: "#/components/schemas/BloodSaturationDatum"

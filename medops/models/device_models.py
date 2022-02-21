@@ -2,9 +2,10 @@
 This module contains the models for how data is defined in memory
 when loaded from the data store.
 """
+from __future__ import annotations
 
 from typing import (
-    Optional
+    Optional,
 )
 from datetime import datetime
 from dataclasses import (
@@ -110,6 +111,38 @@ class DeviceDatum:
         A dictionary with keys/value pairs of the device attributes
         """
         return asdict(self)
+
+    def to_json(self) -> dict:
+        """Converts the model and values into a json serializeable dictionary
+
+        Returns
+        -------
+        A dictionary where all key/value pairs are JSON serializable.
+        """
+        data = self.to_dict()
+        data['received_time'] = self.received_time.isoformat()
+        data['collection_time'] = self.collection_time.isoformat()
+        return data
+
+    @classmethod
+    def from_json(cls, data: dict) -> DeviceDatum:
+        """Instantiate a DeviceDatum object from a json dict.
+
+        Parameters
+        ----------
+        data : dict
+            A dictionary of key value pairs that are json serializeable
+
+        Returns
+        -------
+        An instance of the device datum class.
+        """
+
+        received_time = datetime.fromisoformat(data.pop('received_time'))
+        collection_time = datetime.fromisoformat(data.pop('collection_time'))
+        return cls(**data,
+                   received_time=received_time,
+                   collection_time=collection_time)
 
 
 @dataclass
@@ -320,3 +353,12 @@ class Storage:
 class DeviceStorage(Storage):
     model = Device
     id_field = "device_id"
+
+
+def store_data(data: list[DeviceDatum]):
+    pass
+
+class DataStorage:
+
+    def store(data: list[DeviceDatum]):
+        pass
