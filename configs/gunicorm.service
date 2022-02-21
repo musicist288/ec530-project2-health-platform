@@ -1,0 +1,17 @@
+[Unit]
+Description=EC530 Project Gunicorn daemon
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+# This should be the path to the root of the medops
+# source tree on your server.
+WorkingDirectory=/var/www/application/api
+
+# The bind path is wherever you want to (and have permission to) write
+# the unix socket file used to proxy traffic from and to nginx.
+ExecStart=/var/www/application/.venv/bin/gunicorn --access-logfile - --workers 1 --bind unix:/var/www/application/api.sock medops.app:APP
+
+[Install]
+WantedBy=multi-user.target

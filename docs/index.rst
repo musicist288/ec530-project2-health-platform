@@ -17,8 +17,16 @@ The source code for MedOps is hosted on `GitHub
 <https://github.com/musicist288/ec530-project2-health-platform>`_.
 
 
+Guides
+^^^^^^
+.. toctree::
+   :maxdepth: 1
+
+   hosting
+
+
 API Reference
--------------
+^^^^^^^^^^^^^
 If you are looking for information on the data models and APIs being developed
 you're in the right spot, check out the contents below.
 
