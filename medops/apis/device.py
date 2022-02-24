@@ -7,21 +7,17 @@
 
 from flask import (
     Blueprint,
-    Response,
     request,
     make_response,
     jsonify
 )
 
+from .common import error_response
 from .. import models
-from typing import Tuple
-
-def error_response(errors: list[str]) -> Tuple[Response, int]:
-    return jsonify(errors=errors, count=len(errors)), 422
-
 
 # TODO: Make this configurable
 DEVICES_API_BLUEPRINT = Blueprint("devices", __name__)
+
 
 @DEVICES_API_BLUEPRINT.route("/", methods=["GET"])
 def device_query():
