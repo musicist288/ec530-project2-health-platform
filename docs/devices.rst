@@ -38,10 +38,10 @@ Having this separate model provides a few benefits:
   the data when the device reports it.
 
 
-Data Storage
-------------
-Currently, data storage is a work in progress. The intent is to
-store the device registry and data in a database.
+Recording Data
+-------------
+See :ref:`_data-documentation` for information about how data should be reported
+by devices.
 
 
 .. _models-header-ref:
@@ -60,38 +60,3 @@ Device and Data Models
     :members:
 
 |
-
-.. autoclass:: DeviceDatum
-    :members:
-
-|
-
-.. autoclass:: TemperatureDatum
-    :members:
-
-|
-
-.. autoclass:: BloodPressureDatum
-    :members:
-
-|
-
-.. autoclass:: GlucometerDatum
-    :members:
-
-|
-
-.. autoclass:: PulseDatum
-    :members:
-
-|
-
-.. autoclass:: WeightDatum
-    :members:
-
-|
-
-.. autoclass:: BloodSaturationDatum
-    :members:
-
-.. currentmodule:: medops.models.assignment_models
