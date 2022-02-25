@@ -1,4 +1,4 @@
-.. _data-documentation::
+.. _data-documentation:
 
 Reporting Health Data
 =====================

@@ -39,8 +39,8 @@ Having this separate model provides a few benefits:
 
 
 Recording Data
--------------
-See :ref:`_data-documentation` for information about how data should be reported
+--------------
+See :ref:`data-documentation` for information about how data should be reported
 by devices.
 
 
