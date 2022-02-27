@@ -108,3 +108,6 @@ Model APIs
 
 .. autoclass:: MessageStore
     :members:
+
+
+.. autofunction:: get_store_from_env

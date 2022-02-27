@@ -217,7 +217,8 @@ def get_store_from_env():
         The connection string to the database cluser
 
     MONGO_CHAT_DATABASE_NAME : str
-        The name of the default database to write to use.
+        The name of the default database to write to use
+        for storing chat logs.
 
     Returns
     -------
