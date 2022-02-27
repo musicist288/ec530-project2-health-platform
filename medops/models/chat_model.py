@@ -5,11 +5,13 @@
 
 import hashlib
 from typing import Optional
+import logging
 
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 import pymongo
 
+LOGGER = logging.getLogger("medops")
 
 SUPPORTED_ATTACHMENT_TYPES = [
     "video",
@@ -91,6 +93,8 @@ class MessageV1:
 
 class MessageStore:
 
+    chat_index_collection = "chats_index"
+
     def __init__(self, connection_string: str, database_name: str):
         self.mongo = pymongo.MongoClient(connection_string)
         self.database = self.mongo[database_name]
@@ -109,6 +113,7 @@ class MessageStore:
 
         chat_id = self._get_chat_id(user_ids)
         self.database[chat_id].insert_one(message.to_dict())
+        self._store_conversation_index(user_ids)
 
     def query_time_range(
             self,
@@ -207,6 +212,40 @@ class MessageStore:
             digest.update(str(user_id).encode())
 
         return f"chat_{digest.hexdigest()}"
+
+    def _store_conversation_index(self, user_ids: set[int]):
+        chat_id = self._get_chat_id(user_ids)
+        collection = self.database[self.chat_index_collection]
+        count = collection.count_documents({"chat_id": chat_id})
+        if count == 0:
+            collection.insert_one({
+                "chat_id": chat_id,
+                "user_ids": user_ids
+            })
+
+        if count > 1:
+            LOGGER.warn(f"There are multiple records for chat id {chat_id}")
+
+        # Create an index for chats.
+        collection.create_index("user_ids", unique=True)
+
+    def get_user_chats(self, user_ids: set[int]) -> tuple[str]:
+        """Get a list of chats that a user is part of.
+
+        Parameters
+        ----------
+        user_ids : set[int]
+            The set (of one or more) user ids to query chat ids for. If
+            multiple user ids are passed in, this function will query for
+            chat that both users are part of.
+
+        Returns
+        -------
+        A tuple of lists of user ids in a chat.
+        """
+        collection = self.database[self.chat_index_collection]
+        chats = collection.find({"user_ids": {"$all": list(user_ids)}})
+        return tuple([c['user_ids'] for c in chats])
 
 
 def get_store_from_env():
