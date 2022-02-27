@@ -48,7 +48,7 @@ will be tracked in a SQL database.
 
 Retrieving Message Logs
 ^^^^^^^^^^^^^^^^^^^^^^^
-See the :func:`query_time_range` and :func:`query_latest_messages` functions
+See the :meth:`query_time_range` and :methd:`query_latest_messages` functions
 for retrieving a chat log from the database.
 
 
@@ -106,12 +106,5 @@ Model APIs
 
 |
 
-.. autofunction:: query_latest_messages
-
-|
-
-.. autofunction:: query_time_range
-
-|
-
-.. autofunction:: log_message
+.. autoclass:: MessageStore
+    :members:

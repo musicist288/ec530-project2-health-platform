@@ -4,6 +4,7 @@
 from pathlib import Path
 from .device_models import DeviceStorage, Storage
 from .device_models import Device # noqa: F401
+from .chat_model import MessageStore
 
 from flask import current_app
 
@@ -18,11 +19,19 @@ def init_db(app, config):
     config : dict
         The application configuration.
     """
-    devices_file = config["DEVICES_FILENAME"]
-    if isinstance(devices_file, str):
-        devices_file = Path(devices_file)
+    devices_file = config.get("DEVICES_FILENAME", "")
+    mongo_connection = config.get("MONGO_CONNECTION_STRING", "")
+    mongo_database = config.get("MONGO_DATABASE", "")
 
-    app.config['STORAGE'] = {"devices": DeviceStorage(devices_file)}
+    app.config["STORAGE"] = {}
+    if devices_file:
+        if isinstance(devices_file, str):
+            devices_file = Path(devices_file)
+
+        app.config["STORAGE"]["devices"] = DeviceStorage(devices_file)
+
+    if mongo_connection and mongo_database:
+        app.config["STORAGE"]["messaged"] = MessageStore(mongo_connection, mongo_database)
 
 def get_storage(name) -> Storage:
     """Return the configured storage

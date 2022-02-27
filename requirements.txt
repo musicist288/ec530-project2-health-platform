@@ -6,3 +6,5 @@ Flask==2.0.2
 python-dotenv==0.19.2
 pre-commit==2.17.0
 PyYAML~=5.3
+pymongo~=4.0.1
+dnspython~=2.0.0
