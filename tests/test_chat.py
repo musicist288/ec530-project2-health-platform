@@ -29,30 +29,35 @@ def test_log_message(message_store):
     )
     to_users = [1, 2, 3]
     expected_id = message_store._get_chat_id(to_users)
+    # Fake that the mongodb instance reports there is no record of this chat.
+    message_store.database.__getitem__.return_value.count_documents.return_value = 0
     message_store.log_message(to_users, message)
-    assert message_store.database.__getitem__.call_count == 1
-    assert message_store.database.__getitem__.call_args[0][0] == expected_id
+    assert message_store.database.__getitem__.call_count == 2
+    assert message_store.database.__getitem__.call_args_list[-2][0][0] == expected_id
+    assert message_store.database.__getitem__.call_args_list[-1][0][0] == "chats_index"
 
+    # Fake that the mongodb instance reports there is a record of this chat.
+    message_store.database.__getitem__.return_value.count_documents.return_value = 1
     # Order shouldn't matter.
     to_users = [3, 1, 2]
     message_store.log_message(to_users, message)
-    assert message_store.database.__getitem__.call_count == 2
-    assert message_store.database.__getitem__.call_args[0][0] == expected_id
+    assert message_store.database.__getitem__.call_count == 4
+    assert message_store.database.__getitem__.call_args_list[-2][0][0] == expected_id
 
     # Allow implicite addition of from_user to user ids
     to_users.remove(message.from_user) # user ids no longer contains the sender
     # But sending should still work
     message_store.log_message(to_users, message)
     # Expect the same ID as before!
-    assert message_store.database.__getitem__.call_count == 3
-    assert message_store.database.__getitem__.call_args[0][0] == expected_id
+    assert message_store.database.__getitem__.call_count == 6
+    assert message_store.database.__getitem__.call_args_list[-2][0][0] == expected_id
 
     # Different users should be logged somewhere else
     to_users = [3, 4, 1, 2]
     expected_id = message_store._get_chat_id(to_users)
     message_store.log_message(to_users, message)
-    assert message_store.database.__getitem__.call_count == 4
-    assert message_store.database.__getitem__.call_args[0][0] == expected_id
+    assert message_store.database.__getitem__.call_count == 8
+    assert message_store.database.__getitem__.call_args_list[-2][0][0] == expected_id
 
 
 def test_message_attachments():
