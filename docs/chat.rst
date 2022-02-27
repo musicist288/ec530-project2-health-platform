@@ -13,9 +13,7 @@ be more than one user.
 
 That the models and APIs provided by the chat module simply for logging messages
 to the database. They do not provide any real-time or publishing mechanism to
-send messages to participants when new messages come in, nor do they provide a
-way to query what chats a particular user is participating in. That information
-will be tracked in a SQL database.
+send messages to participants when new messages come in.
 
 .. code-block:: JSON
 
@@ -85,7 +83,7 @@ does not distinguish between attachments hosted on MedOps or
 elsewhere. Currently, MedOps does not support hosting attachments,
 so all attachments must be links to files hosted elsewhere.
 
-The supported attachemnt types are:
+The supported attachment types are:
 
 - :code:`file`
 - :code:`video`
