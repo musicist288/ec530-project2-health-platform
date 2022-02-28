@@ -47,6 +47,10 @@ class MessageAttachmentV1:
         if self.type not in SUPPORTED_ATTACHMENT_TYPES:
             raise ValueError(f"Unsupported attachement type: {self.type}")
 
+        if not self.url:
+            raise ValueError("Message attachments must have a url.")
+
+
 @dataclass
 class MessageV1:
     """Chat message, Version 1

@@ -31,7 +31,7 @@ def init_db(app, config):
         app.config["STORAGE"]["devices"] = DeviceStorage(devices_file)
 
     if mongo_connection and mongo_database:
-        app.config["STORAGE"]["messaged"] = MessageStore(mongo_connection, mongo_database)
+        app.config["STORAGE"]["messages"] = MessageStore(mongo_connection, mongo_database)
 
 def get_storage(name) -> Storage:
     """Return the configured storage
