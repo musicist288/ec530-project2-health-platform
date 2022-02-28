@@ -33,5 +33,6 @@ you're in the right spot, check out the contents below.
 .. toctree::
    :maxdepth: 2
 
-   devices
    api
+   chat
+   devices

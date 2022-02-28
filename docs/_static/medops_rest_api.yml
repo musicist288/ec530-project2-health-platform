@@ -146,6 +146,65 @@ paths:
           description: "Not allowed. Devices can't be deleted once they have been used to collect data."
         "200":
           description: "Device deleted successfully."
+
+  /message:
+    post:
+      summary: "Send a message to other users."
+      tags:
+      - "Messages"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageCreate"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageV1-Read"
+        "404":
+          description: "The sender or one of the recepients does not exist."
+        "422":
+          description: |
+            There was one or more errors due to malformed or missing
+            data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /message/query:
+    post:
+      summary: "Query for message logs"
+      tags:
+      - "Messages"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageQuery"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MessageV1-Read"
+                  count:
+                    type: integer
+        "422":
+          description: |
+            There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
 components:
   schemas:
     Device-Create:
@@ -300,3 +359,70 @@ components:
             - $ref: "#/components/schemas/HeartRateDatum"
             - $ref: "#/components/schemas/WeightDatum"
             - $ref: "#/components/schemas/BloodSaturationDatum"
+    MessageAttachmentV1:
+      type: object
+      properties:
+        type:
+          type: string
+        url:
+          type: string
+    MessageV1-Base:
+      type: object
+      properties:
+        from_user:
+          type: integer
+          description: |
+            The id of the user who sent the message.
+        text:
+          type: string
+          description: |
+            The text of the message
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageAttachmentV1"
+    MessageV1-Read:
+      allOf:
+        - $ref: "#/components/schemas/MessageV1-Base"
+        - type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            message_version:
+              type: integer
+              description: |
+                Version number of the message schema
+    MessageCreate:
+      allOf:
+        - $ref: "#/components/schemas/MessageV1-Base"
+        - type: object
+          properties:
+            recepient_ids:
+              type: array
+              items:
+                type: integer
+    MessageQuery:
+      type: object
+      required:
+        - "user_ids"
+      properties:
+        user_ids:
+          description: |
+            An array of user IDs
+          type: array
+          items:
+            type: integer
+        until:
+          description: |
+            The most recent date until which to query for messages.
+          type: string
+          format: date-time
+        since:
+          description: |
+            The most historical date since which to query for messages.
+          type: string
+          format: date-time
+        limit:
+          type: integer
+          minimum: 1
