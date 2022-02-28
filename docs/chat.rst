@@ -46,7 +46,7 @@ send messages to participants when new messages come in.
 
 Retrieving Message Logs
 ^^^^^^^^^^^^^^^^^^^^^^^
-See the :meth:`query_time_range` and :methd:`query_latest_messages` functions
+See the :meth:`query_time_range` and :meth:`query_latest_messages` functions
 for retrieving a chat log from the database.
 
 
