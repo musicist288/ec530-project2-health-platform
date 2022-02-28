@@ -1,3 +1,5 @@
+.. _rest-api-page::
+
 REST API
 ========
 

@@ -132,3 +132,27 @@ def test_missing_sender(client):
     )
     resp = client.post("/messages/", json=request_data)
     assert resp.status_code == 422
+
+
+def test_query_missing_users(client):
+    request_data = dict(
+        user_ids=[]
+    )
+    resp = client.post("/messages/query", json=request_data)
+    assert resp.status_code == 422
+
+
+def test_query_since_user(client):
+    request_data = dict(
+        user_ids=[1]
+    )
+    resp = client.post("/messages/query", json=request_data)
+    assert resp.status_code == 422
+
+
+def test_query_multiple_users(client):
+    request_data = dict(
+        user_ids=[1, 2]
+    )
+    resp = client.post("/messages/query", json=request_data)
+    assert resp.status_code == 200

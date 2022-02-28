@@ -109,3 +109,9 @@ Model APIs
 
 
 .. autofunction:: get_store_from_env
+
+
+REST API
+========
+Check out the `REST API docs <./_static/medops_rest_api.html>`_ for
+the messages API.
