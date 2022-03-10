@@ -4,7 +4,6 @@ when loaded from the data store.
 """
 from __future__ import annotations
 
-import os
 from typing import (
     Optional,
 )
@@ -21,7 +20,6 @@ from peewee import (
     IntegerField,
     FloatField,
     CharField,
-    ForeignKeyField,
     AutoField
 )
 
@@ -30,7 +28,9 @@ from .base import (
     register_table
 )
 
-TABLES = []
+DEVICE_TABLES = []
+DATA_TABLES = []
+DATUM_TO_MODEL = {}
 
 @dataclass
 class Device:
@@ -301,11 +301,7 @@ class Storage:
         raise NotImplementedError()
 
 
-def store_data(data: list[DeviceDatum]):
-    pass
-
-
-@register_table(TABLES)
+@register_table(DEVICE_TABLES)
 class DeviceModel(BaseModel):
     device_id = AutoField()
     name = CharField(unique=True)
@@ -315,41 +311,73 @@ class DeviceModel(BaseModel):
     mac_address = CharField(null=True, max_length=100)
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class DeviceDatumModel(BaseModel):
-    device_id = ForeignKeyField(DeviceModel, backref="data")
+    device_id = IntegerField(null=False)
     assigned_user = IntegerField(null=False)
     received_time = DateTimeField(null=False)
     collection_time = DateTimeField(null=False)
 
+    @classmethod
+    def from_dataclass(cls, instance):
+        attrs = {}
+        for field in cls._meta.sorted_fields:
+            if field.name == "id":
+                # "id" is an auto generated field name by peewee. Data classes
+                # cannot have an id attribute.
+                continue
 
-@register_table(TABLES)
+            if not hasattr(instance, field.name):
+                raise AttributeError(f"Dataclass for {cls.__name__} does not have "
+                                     f"the attribute {field.name}. You must override"
+                                     f"the from_dataclass method in this submodel.")
+            else:
+                attrs[field.name] = getattr(instance, field.name)
+
+        return cls(**attrs)
+
+    def to_dataclass(self):
+        DatumClass = None
+        for data_cls, model_cls in DATUM_TO_MODEL.items():
+            if isinstance(self, model_cls):
+                DatumClass = data_cls
+
+        attrs = {}
+        for field in self._meta.sorted_fields:
+            if field.name == "id":
+                continue
+            attrs[field.name] = getattr(self, field.name)
+
+        return DatumClass(**attrs)
+
+
+@register_table(DATA_TABLES)
 class TemperatureDatumModel(DeviceDatumModel):
     deg_c = FloatField(null=False)
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class BloodPressureDatumModel(DeviceDatumModel):
     systolic = FloatField()
     diastolic = FloatField()
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class GlucometerDatumModel(DeviceDatumModel):
     mg_dl = IntegerField()
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class PulseDatumModel(DeviceDatumModel):
     bpm = IntegerField()
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class WeightDatumModel(DeviceDatumModel):
     grams = IntegerField()
 
 
-@register_table(TABLES)
+@register_table(DATA_TABLES)
 class BloodSaturationDatumModel(DeviceDatumModel):
     percentage = FloatField()
 
@@ -374,24 +402,29 @@ def _model_from_device(device: Device) -> DeviceModel:
         name=device.name
     )
 
+class SqliteStorage(Storage):
 
-class DeviceStorage:
-    dataclass = Device
-    model = DeviceModel
-    id_field = "device_id"
+    tables: list[BaseModel] = None
 
-    def __init__(self, devices_file):
-        exists = os.path.exists(devices_file)
-        self.database = SqliteDatabase(devices_file)
-        self.database.bind(TABLES)
+    def __init__(self, filename):
+        if not self.tables:
+            raise ValueError("SqliteStorage subclass define tables class property.")
+
+        self.database = SqliteDatabase(filename)
+        self.database.bind(self.tables)
         self.database.connect()
 
-        if not exists:
-            self.database.create_tables(TABLES)
+        to_create = [model for model in self.tables if not model.table_exists()]
+        self.database.create_tables(to_create)
 
     def deinit(self):
         if self.database:
             self.database.close()
+
+
+class DeviceStorage(SqliteStorage):
+
+    tables = DEVICE_TABLES
 
     def get(self, record_id: int) -> Optional[Device]:
         query = DeviceModel.select().where(DeviceModel.device_id == record_id)
@@ -427,3 +460,34 @@ class DeviceStorage:
         query = DeviceModel.delete().where(DeviceModel.device_id == record_id)
         n_rows_deleted = query.execute()
         return n_rows_deleted >= 1
+
+# TODO: Turn this into a class decorator
+DATUM_TO_MODEL = {
+    # DeviceDatum: DeviceDatumModel,
+    TemperatureDatum: TemperatureDatumModel,
+    BloodPressureDatum: BloodPressureDatumModel,
+    GlucometerDatum: GlucometerDatumModel,
+    PulseDatum: PulseDatumModel,
+    WeightDatum: WeightDatumModel,
+    BloodSaturationDatum: BloodSaturationDatumModel
+}
+
+class DataStorage(SqliteStorage):
+    tables = DATA_TABLES
+
+    def _model_for_instance(self, instance) -> DeviceDatumModel:
+        for datum_cls, model_cls in DATUM_TO_MODEL.items():
+            if isinstance(instance, datum_cls):
+                return model_cls
+
+        raise ValueError(f"No datum class found for instance: {instance.__name__}")
+
+    def create(self, data: DeviceDatum):
+        Model = self._model_for_instance(data)
+        instance = Model.from_dataclass(data)
+        instance.save()
+        return instance.to_dataclass()
+
+
+def store_data(data: list[DeviceDatum], storage: DataStorage):
+    return list(map(storage.create, data))

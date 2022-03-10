@@ -2,7 +2,7 @@
     Models contain the in-memory storage data
 """
 from pathlib import Path
-from .device_models import DeviceStorage, Storage
+from .device_models import DeviceStorage, Storage, DataStorage
 from .device_models import Device # noqa: F401
 from .chat_model import MessageStore
 
@@ -21,6 +21,7 @@ def init_db(app, config):
         The application configuration.
     """
     devices_file = config.get("DEVICES_FILENAME", "")
+    data_db_file = config.get("DATA_DB_FILENAME", "")
     mongo_connection = config.get("MONGO_CONNECTION_STRING", "")
     mongo_database = config.get("MONGO_DATABASE", "")
 
@@ -31,6 +32,12 @@ def init_db(app, config):
 
         app.config["STORAGE"]["devices"] = DeviceStorage(devices_file)
 
+    if data_db_file:
+        if isinstance(data_db_file, str):
+            data_db_file = Path(data_db_file)
+
+        app.config["STORAGE"]["data"] = DataStorage(data_db_file)
+
     if mongo_connection and mongo_database:
         app.config["STORAGE"]["messages"] = MessageStore(mongo_connection, mongo_database)
 
@@ -39,6 +46,10 @@ def deinit(app):
     dev_storage: Optional[DeviceStorage] = app.config['STORAGE'].get("devices")
     if dev_storage:
         dev_storage.deinit()
+
+    data_storage: Optional[DataStorage] = app.config['STORAGE'].get("data")
+    if data_storage:
+        data_storage.deinit()
 
 
 def get_storage(name) -> Storage:
