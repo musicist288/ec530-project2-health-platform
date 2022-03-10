@@ -22,6 +22,8 @@ def client():
         with app.app_context():
             yield testing_client
 
+    models.deinit(app)
+
     if os.path.exists(db_filename):
         os.unlink(db_filename)
 

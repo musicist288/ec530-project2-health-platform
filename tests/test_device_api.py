@@ -21,6 +21,7 @@ def client():
         with app.app_context():
             yield testing_client
 
+    models.deinit(app)
     if os.path.exists(db_filename):
         os.unlink(db_filename)
 
@@ -90,6 +91,14 @@ def test_create_device_empty_required_field(client):
     assert resp.json["count"] == len(errors)
 
 
+def assert_equal_resp(data_json, response_json):
+    data = dict(data_json)
+    resp = dict(response_json)
+    data.pop('date_of_purchase')
+    resp.pop('date_of_purchase')
+    assert data == resp
+
+
 def test_read_device(client):
     _, data = create_valid_device(client)
     device_id = data.json["device_id"]
@@ -98,7 +107,7 @@ def test_read_device(client):
     assert response.status_code == 200
     # Get should return the same data as when
     # the devices is created.
-    assert response.json == data.json
+    assert_equal_resp(response.json, data.json)
 
 
 def test_read_not_found(client):
@@ -134,13 +143,13 @@ def test_update_device(client):
 
     resp = client.put(device_path, json=data)
     assert resp.status_code == 200
-    assert resp.json == data
+    assert_equal_resp(resp.json, data)
 
     # Make sure it persisted and is returned
     # with the updated fields
     resp = client.get(device_path)
     assert resp.status_code == 200
-    assert resp.json == data
+    assert_equal_resp(resp.json, data)
 
 
 def test_update_device_invalid(client):

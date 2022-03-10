@@ -7,6 +7,7 @@ from .device_models import Device # noqa: F401
 from .chat_model import MessageStore
 
 from flask import current_app
+from typing import Optional
 
 def init_db(app, config):
     """Initialize the current application instance with the loaded
@@ -32,6 +33,13 @@ def init_db(app, config):
 
     if mongo_connection and mongo_database:
         app.config["STORAGE"]["messages"] = MessageStore(mongo_connection, mongo_database)
+
+
+def deinit(app):
+    dev_storage: Optional[DeviceStorage] = app.config['STORAGE'].get("devices")
+    if dev_storage:
+        dev_storage.deinit()
+
 
 def get_storage(name) -> Storage:
     """Return the configured storage

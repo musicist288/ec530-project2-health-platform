@@ -4,6 +4,7 @@ when loaded from the data store.
 """
 from __future__ import annotations
 
+import os
 from typing import (
     Optional,
 )
@@ -13,9 +14,23 @@ from dataclasses import (
     asdict
 )
 from pathlib import Path
-import copy
-import json
 
+from peewee import (
+    SqliteDatabase,
+    DateTimeField,
+    IntegerField,
+    FloatField,
+    CharField,
+    ForeignKeyField,
+    AutoField
+)
+
+from .base import (
+    BaseModel,
+    register_table
+)
+
+TABLES = []
 
 @dataclass
 class Device:
@@ -264,101 +279,151 @@ class DeviceAssignment:
     date_returned: Optional[datetime]
 
 
-# XXX: This is just a placeholder until there is a proper
-# database backend.
 class Storage:
-
-    model = None
-    id_field = None
+    """An abstract interface class for storage proxies"""
 
     def __init__(self, filename: Path):
-        self.filename = filename
-        self.records = []
-
-        # Load the file.
-        self._loaded = False
-        self._next_id = None
-        self._load()
-
-    def _save(self):
-        with self.filename.open("w") as handle:
-            data = [device.to_dict() for device in self.records]
-            json.dump(data, handle)
-
-        if not self._loaded:
-            self._loaded = True
-
-        if self._next_id is None:
-            self._next_id = 1
-
-    def _load(self):
-        if not self._loaded:
-            if self.filename.exists():
-                with self.filename.open("r") as handle:
-                    data = json.load(handle)
-                    self.records = [self.model(**d) for d in data]
-
-                self._next_id = max([getattr(d, self.id_field) for d in self.records])
-            else:
-                self._next_id = 1
-
-            self._loaded = True
-
-    def query(self):
         pass
 
+    def query(self):
+        raise NotImplementedError()
+
     def get(self, record_id: int) -> Optional[Device]:
-        to_return = None
-
-        for device in self.records:
-            if getattr(device, self.id_field) == record_id:
-                to_return = copy.deepcopy(device)
-
-        return to_return
+        raise NotImplementedError()
 
     def create(self, model):
-        if getattr(model, self.id_field) is not None:
-            raise ValueError(f"{self.id_filed} is an autoincrement file. It must be None when created")
-
-        setattr(model, self.id_field, self._next_id)
-        self._next_id += 1
-
-        # Create a deep copy of the device so user modifications
-        # don't change anything.
-        for_storage = copy.deepcopy(model)
-        self.records.append(for_storage)
-        self._save()
-        return model
+        raise NotImplementedError()
 
     def update(self, model):
-        if getattr(model, self.id_field) is None:
-            raise ValueError("Device does not exist.")
-
-        for_storage = copy.deepcopy(model)
-        # remove the old one
-        models = [d for d in self.records if getattr(d, self.id_field) != getattr(model, self.id_field)]
-        models.append(for_storage)
-        self.records = models
-        self._save()
-        return model
+        raise NotImplementedError()
 
     def delete(self, record_id: int) -> bool:
-        models = [d for d in self.records if getattr(d, self.id_field) != record_id]
-        deleted = len(models) < len(self.records)
-        self.records = models
-        self._save()
-        return deleted
-
-
-class DeviceStorage(Storage):
-    model = Device
-    id_field = "device_id"
+        raise NotImplementedError()
 
 
 def store_data(data: list[DeviceDatum]):
     pass
 
-class DataStorage:
 
-    def store(data: list[DeviceDatum]):
-        pass
+@register_table(TABLES)
+class DeviceModel(BaseModel):
+    device_id = AutoField()
+    name = CharField(unique=True)
+    current_firmware_version = CharField(null=True)
+    date_of_purchase = DateTimeField(null=True)
+    serial_number = CharField(null=True)
+    mac_address = CharField(null=True, max_length=100)
+
+
+@register_table(TABLES)
+class DeviceDatumModel(BaseModel):
+    device_id = ForeignKeyField(DeviceModel, backref="data")
+    assigned_user = IntegerField(null=False)
+    received_time = DateTimeField(null=False)
+    collection_time = DateTimeField(null=False)
+
+
+@register_table(TABLES)
+class TemperatureDatumModel(DeviceDatumModel):
+    deg_c = FloatField(null=False)
+
+
+@register_table(TABLES)
+class BloodPressureDatumModel(DeviceDatumModel):
+    systolic = FloatField()
+    diastolic = FloatField()
+
+
+@register_table(TABLES)
+class GlucometerDatumModel(DeviceDatumModel):
+    mg_dl = IntegerField()
+
+
+@register_table(TABLES)
+class PulseDatumModel(DeviceDatumModel):
+    bpm = IntegerField()
+
+
+@register_table(TABLES)
+class WeightDatumModel(DeviceDatumModel):
+    grams = IntegerField()
+
+
+@register_table(TABLES)
+class BloodSaturationDatumModel(DeviceDatumModel):
+    percentage = FloatField()
+
+
+def _device_from_model(model: DeviceModel) -> Device:
+    return Device(
+        device_id=model.device_id,
+        current_firmware_version=model.current_firmware_version,
+        date_of_purchase=model.date_of_purchase,
+        serial_number=model.serial_number,
+        mac_address=model.mac_address,
+        name=model.name
+    )
+
+
+def _model_from_device(device: Device) -> DeviceModel:
+    return DeviceModel(
+        current_firmware_version=device.current_firmware_version,
+        date_of_purchase=device.date_of_purchase,
+        serial_number=device.serial_number,
+        mac_address=device.mac_address,
+        name=device.name
+    )
+
+
+class DeviceStorage:
+    dataclass = Device
+    model = DeviceModel
+    id_field = "device_id"
+
+    def __init__(self, devices_file):
+        exists = os.path.exists(devices_file)
+        self.database = SqliteDatabase(devices_file)
+        self.database.bind(TABLES)
+        self.database.connect()
+
+        if not exists:
+            self.database.create_tables(TABLES)
+
+    def deinit(self):
+        if self.database:
+            self.database.close()
+
+    def get(self, record_id: int) -> Optional[Device]:
+        query = DeviceModel.select().where(DeviceModel.device_id == record_id)
+        if query.count() == 0:
+            return None
+
+        model: DeviceModel = query[0]
+        return _device_from_model(model)
+
+    def create(self, device: Device) -> Device:
+        if device.device_id is not None:
+            raise ValueError("device_id must be None when creating a new device.")
+
+        model = _model_from_device(device)
+        model.save()
+        return _device_from_model(model)
+
+    def update(self, device: Device) -> Device:
+        query = DeviceModel.select().where(DeviceModel.device_id == device.device_id)
+        if not query.count():
+            raise ValueError(f"Device {device.device_id} does not exist.")
+
+        model = query[0]
+        model.name = device.name
+        model.current_firmware_version = device.current_firmware_version
+        model.date_of_purchase = device.date_of_purchase
+        model.serial_number = device.serial_number
+        model.mac_address = device.mac_address
+        model.save()
+        return _device_from_model(model)
+
+    def delete(self, record_id: int) -> bool:
+        query = DeviceModel.delete().where(DeviceModel.device_id == record_id)
+        n_rows_deleted = query.execute()
+        return n_rows_deleted >= 1
