@@ -1,4 +1,5 @@
 docs/_static/medops_rest_api.html
+*.db
 
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,visualstudiocode,vim,emacs,python
 
