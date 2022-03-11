@@ -1,3 +1,7 @@
+"""
+This module provides some base definitions and functions used by
+other model modules.
+"""
 from peewee import Model
 
 class BaseModel(Model):
@@ -6,7 +10,10 @@ class BaseModel(Model):
     pass
 
 
-def register_table(array):
+def register(array):
+    """A decorator register a class or function by appending
+    it to an array.
+    """
     def wrapper(cls):
         array.append(cls)
         return cls

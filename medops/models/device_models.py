@@ -4,15 +4,11 @@ when loaded from the data store.
 """
 from __future__ import annotations
 
-from typing import (
-    Optional,
-)
+from typing import Optional
+import attr
+from attr import asdict
+
 from datetime import datetime
-from dataclasses import (
-    dataclass,
-    asdict
-)
-from pathlib import Path
 
 from peewee import (
     SqliteDatabase,
@@ -25,14 +21,14 @@ from peewee import (
 
 from .base import (
     BaseModel,
-    register_table
+    register
 )
 
 DEVICE_TABLES = []
 DATA_TABLES = []
 DATUM_TO_MODEL = {}
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class Device:
     """The `Device` model represents the metadata associated with a device
     that can be collect data from users. Note that the device does not indicate
@@ -71,17 +67,12 @@ class Device:
     # These fields are validated by property
     name: str
 
-    @property
-    def name(self):
-        return self.__name
-
-    @name.setter
-    def name(self, value: str):
-        if not isinstance(value, str):
+    def __attrs_post_init__(self):
+        if not isinstance(self.name, str):
             raise ValueError("name must be a string.")
-        if not value.strip():
+
+        if not self.name.strip():
             raise ValueError("name cannot be blank.")
-        self.__name = value
 
     def to_dict(self) -> dict:
         """Convert the model into a dict representation for serialization.
@@ -93,7 +84,7 @@ class Device:
         return asdict(self)
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class DeviceDatum:
     """Base class for different device datum types. This class should
     not be used directly.
@@ -117,6 +108,7 @@ class DeviceDatum:
     assigned_user: int
     received_time: datetime
     collection_time: datetime
+    datum_id: Optional[int] = None
 
     def to_dict(self) -> dict:
         """Convert the model into a dict representation for serialization.
@@ -160,7 +152,7 @@ class DeviceDatum:
                    collection_time=collection_time)
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class TemperatureDatum(DeviceDatum):
     """A temperature datum
 
@@ -174,7 +166,7 @@ class TemperatureDatum(DeviceDatum):
     deg_c: float
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class BloodPressureDatum(DeviceDatum):
     """A blood pressure datum
 
@@ -191,7 +183,7 @@ class BloodPressureDatum(DeviceDatum):
     diastolic: float
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class GlucometerDatum(DeviceDatum):
     """A glucose level reading
 
@@ -205,7 +197,7 @@ class GlucometerDatum(DeviceDatum):
     mg_dl: int
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class PulseDatum(DeviceDatum):
     """A heart rate dataum
 
@@ -219,7 +211,7 @@ class PulseDatum(DeviceDatum):
     bpm: int
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class WeightDatum(DeviceDatum):
     """A weight datum
 
@@ -233,7 +225,7 @@ class WeightDatum(DeviceDatum):
     grams: int
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class BloodSaturationDatum(DeviceDatum):
     """Blood saturation datum
 
@@ -247,7 +239,7 @@ class BloodSaturationDatum(DeviceDatum):
     percentage: float
 
 
-@dataclass
+@attr.s(auto_attribs=True, kw_only=True)
 class DeviceAssignment:
     """The device assignment is a record of time periods when a device has been
     assigned to a user. Data collected during this time.
@@ -279,16 +271,154 @@ class DeviceAssignment:
     date_returned: Optional[datetime]
 
 
-class Storage:
-    """An abstract interface class for storage proxies"""
+@register(DEVICE_TABLES)
+class DeviceModel(BaseModel):
+    """A storage model type to persist Devices.
+    Storage models must have the same properties as the data classes they
+    represent. See :class:`Device` for a description of the fields.
+    """
+    device_id = AutoField()
+    name = CharField(unique=True)
+    current_firmware_version = CharField(null=True)
+    date_of_purchase = DateTimeField(null=True)
+    serial_number = CharField(null=True)
+    mac_address = CharField(null=True, max_length=100)
 
-    def __init__(self, filename: Path):
-        pass
+    def to_dataclass(self) -> Device:
+        """Create a Device data class from a model instance."""
+        return Device(
+            device_id=self.device_id,
+            current_firmware_version=self.current_firmware_version,
+            date_of_purchase=self.date_of_purchase,
+            serial_number=self.serial_number,
+            mac_address=self.mac_address,
+            name=self.name
+        )
+
+    @classmethod
+    def from_dataclass(cls, device: Device) -> DeviceModel:
+        """Create a DeviceModel instance from a data class instance."""
+        return cls(
+            current_firmware_version=device.current_firmware_version,
+            date_of_purchase=device.date_of_purchase,
+            serial_number=device.serial_number,
+            mac_address=device.mac_address,
+            name=device.name
+        )
+
+
+@register(DATA_TABLES)
+class DeviceDatumModel(BaseModel):
+    """A base model type that describes the fields common to all datum types.
+    Storage models must have the same properties as the data classes they
+    represent. See :class:`DeviceDatum` for a description of the fields.
+    """
+    datum_id = AutoField()
+    device_id = IntegerField(null=False)
+    assigned_user = IntegerField(null=False)
+    received_time = DateTimeField(null=False)
+    collection_time = DateTimeField(null=False)
+
+    @classmethod
+    def from_dataclass(cls, instance: DeviceDatum) -> DeviceDatumModel:
+        """This classmethod is used to automate the conversion between
+        dataclasses, which are the storage agnostic classes representing
+        data, and the relational model.
+
+        This methanism relies on keeping the collection of properties in sync.
+        Yes, this is overhead and duplication, but it keeps the in-memory
+        representation of the models completely separate from how they are
+        stored in the rest of the application.
+
+        Note that this is is defined here, but this class shouldn't be used
+        directly. It should always be called from a subclass.
+
+        Parameters
+        ----------
+        instance : DeviceDatum
+            The datum instance to convert into the model class.
+
+        Returns
+        -------
+        An instance of the device datum model.
+        """
+        attrs = {}
+        for field in cls._meta.sorted_fields:
+            if not hasattr(instance, field.name):
+                raise AttributeError(f"Dataclass for {cls.__name__} does not have "
+                                     f"the attribute {field.name}. You must override"
+                                     f"the from_dataclass method in this submodel.")
+            else:
+                attrs[field.name] = getattr(instance, field.name)
+
+        return cls(**attrs)
+
+    def to_dataclass(self) -> DeviceDatum:
+        """Convert this model into the appropriate dataclass
+
+        Returns
+        -------
+        An instance of the dataclass for the appropriate datum type.
+        """
+
+        DatumClass = None
+        for data_cls, model_cls in DATUM_TO_MODEL.items():
+            if isinstance(self, model_cls):
+                DatumClass = data_cls
+
+        attrs = {}
+        for field in self._meta.sorted_fields:
+            attrs[field.name] = getattr(self, field.name)
+
+        return DatumClass(**attrs)
+
+
+@register(DATA_TABLES)
+class TemperatureDatumModel(DeviceDatumModel):
+    """Temperature Datum"""
+    deg_c = FloatField(null=False)
+
+
+@register(DATA_TABLES)
+class BloodPressureDatumModel(DeviceDatumModel):
+    """Blood Pressure Datum"""
+    systolic = FloatField()
+    diastolic = FloatField()
+
+
+@register(DATA_TABLES)
+class GlucometerDatumModel(DeviceDatumModel):
+    """Glucometer Datum"""
+    mg_dl = IntegerField()
+
+
+@register(DATA_TABLES)
+class PulseDatumModel(DeviceDatumModel):
+    """Pulse Datum"""
+    bpm = IntegerField()
+
+
+@register(DATA_TABLES)
+class WeightDatumModel(DeviceDatumModel):
+    """Weight Datum"""
+    grams = IntegerField()
+
+
+@register(DATA_TABLES)
+class BloodSaturationDatumModel(DeviceDatumModel):
+    """Blood Saturation Datum"""
+    percentage = FloatField()
+
+
+class Storage:
+    """An abstract interface class for storage proxies. The
+    main intent of this class is to define the API that all
+    storage implementations should implement."""
 
     def query(self):
         raise NotImplementedError()
 
-    def get(self, record_id: int) -> Optional[Device]:
+    def get(self, record_id: int):
         raise NotImplementedError()
 
     def create(self, model):
@@ -301,108 +431,24 @@ class Storage:
         raise NotImplementedError()
 
 
-@register_table(DEVICE_TABLES)
-class DeviceModel(BaseModel):
-    device_id = AutoField()
-    name = CharField(unique=True)
-    current_firmware_version = CharField(null=True)
-    date_of_purchase = DateTimeField(null=True)
-    serial_number = CharField(null=True)
-    mac_address = CharField(null=True, max_length=100)
-
-
-@register_table(DATA_TABLES)
-class DeviceDatumModel(BaseModel):
-    device_id = IntegerField(null=False)
-    assigned_user = IntegerField(null=False)
-    received_time = DateTimeField(null=False)
-    collection_time = DateTimeField(null=False)
-
-    @classmethod
-    def from_dataclass(cls, instance):
-        attrs = {}
-        for field in cls._meta.sorted_fields:
-            if field.name == "id":
-                # "id" is an auto generated field name by peewee. Data classes
-                # cannot have an id attribute.
-                continue
-
-            if not hasattr(instance, field.name):
-                raise AttributeError(f"Dataclass for {cls.__name__} does not have "
-                                     f"the attribute {field.name}. You must override"
-                                     f"the from_dataclass method in this submodel.")
-            else:
-                attrs[field.name] = getattr(instance, field.name)
-
-        return cls(**attrs)
-
-    def to_dataclass(self):
-        DatumClass = None
-        for data_cls, model_cls in DATUM_TO_MODEL.items():
-            if isinstance(self, model_cls):
-                DatumClass = data_cls
-
-        attrs = {}
-        for field in self._meta.sorted_fields:
-            if field.name == "id":
-                continue
-            attrs[field.name] = getattr(self, field.name)
-
-        return DatumClass(**attrs)
-
-
-@register_table(DATA_TABLES)
-class TemperatureDatumModel(DeviceDatumModel):
-    deg_c = FloatField(null=False)
-
-
-@register_table(DATA_TABLES)
-class BloodPressureDatumModel(DeviceDatumModel):
-    systolic = FloatField()
-    diastolic = FloatField()
-
-
-@register_table(DATA_TABLES)
-class GlucometerDatumModel(DeviceDatumModel):
-    mg_dl = IntegerField()
-
-
-@register_table(DATA_TABLES)
-class PulseDatumModel(DeviceDatumModel):
-    bpm = IntegerField()
-
-
-@register_table(DATA_TABLES)
-class WeightDatumModel(DeviceDatumModel):
-    grams = IntegerField()
-
-
-@register_table(DATA_TABLES)
-class BloodSaturationDatumModel(DeviceDatumModel):
-    percentage = FloatField()
-
-
-def _device_from_model(model: DeviceModel) -> Device:
-    return Device(
-        device_id=model.device_id,
-        current_firmware_version=model.current_firmware_version,
-        date_of_purchase=model.date_of_purchase,
-        serial_number=model.serial_number,
-        mac_address=model.mac_address,
-        name=model.name
-    )
-
-
-def _model_from_device(device: Device) -> DeviceModel:
-    return DeviceModel(
-        current_firmware_version=device.current_firmware_version,
-        date_of_purchase=device.date_of_purchase,
-        serial_number=device.serial_number,
-        mac_address=device.mac_address,
-        name=device.name
-    )
-
 class SqliteStorage(Storage):
+    """An abstract base storage base flass class for a storage proxy
+    that reads and writes to a SQLite database.
+
+    Attributes
+    ----------
+    tables : list[BaseModel]
+        A list of tables that this storage proxy needs to read and write
+        from. The tables will get created at runtime when an instance
+        of this class is created.
+
+    Parameters
+    ----------
+    filename : str
+        The filename of the sqlite database to use. This will be created if
+        it doesn't not exist. After initializing, the storage class will maintain
+        an open handle to the database.
+    """
 
     tables: list[BaseModel] = None
 
@@ -417,32 +463,77 @@ class SqliteStorage(Storage):
         to_create = [model for model in self.tables if not model.table_exists()]
         self.database.create_tables(to_create)
 
+    def __setattr__(self, attr, value):
+        if attr == "tables":
+            raise Exception("tables should not be overwritten at runtime.")
+
+        return super().__setattr__(attr, value)
+
     def deinit(self):
+        """Cleans up the database connection"""
         if self.database:
             self.database.close()
 
 
 class DeviceStorage(SqliteStorage):
+    """SqliteStorage Implementation for devices"""
 
     tables = DEVICE_TABLES
 
-    def get(self, record_id: int) -> Optional[Device]:
-        query = DeviceModel.select().where(DeviceModel.device_id == record_id)
+    def get(self, device_id: int) -> Optional[Device]:
+        """Get a device by its id.
+
+        Parameters
+        ----------
+        device_id : int
+            The device identifier assigned when the device was created.
+
+        Returns
+        -------
+        None if the device does not exist, otherwise a Device instance.
+        """
+        query = DeviceModel.select().where(DeviceModel.device_id == device_id)
         if query.count() == 0:
             return None
 
         model: DeviceModel = query[0]
-        return _device_from_model(model)
+        return model.to_dataclass()
 
     def create(self, device: Device) -> Device:
+        """Create a new device.
+
+        Parameters
+        ----------
+        device : Device
+            An instance of the device dataclass with attributes filled in for the
+            new device. This method will raise a ValueError if the device.device_id
+            proerty is not None. A device id will be generated as part of this process
+            and set on the returned instance.
+
+        Returns
+        -------
+        A Device instance.
+        """
         if device.device_id is not None:
             raise ValueError("device_id must be None when creating a new device.")
 
-        model = _model_from_device(device)
+        model = DeviceModel.from_dataclass(device)
         model.save()
-        return _device_from_model(model)
+        return model.to_dataclass()
 
     def update(self, device: Device) -> Device:
+        """Update an existing device.
+
+        Parameters
+        ----------
+        device : Device
+            An instance of the device to update. The value of the `device_id` property
+            will be used to identify the record to update.
+
+        Returns
+        -------
+        An updated Device instance.
+        """
         query = DeviceModel.select().where(DeviceModel.device_id == device.device_id)
         if not query.count():
             raise ValueError(f"Device {device.device_id} does not exist.")
@@ -454,15 +545,28 @@ class DeviceStorage(SqliteStorage):
         model.serial_number = device.serial_number
         model.mac_address = device.mac_address
         model.save()
-        return _device_from_model(model)
+        return model.to_dataclass()
 
-    def delete(self, record_id: int) -> bool:
-        query = DeviceModel.delete().where(DeviceModel.device_id == record_id)
+    def delete(self, device_id: int) -> bool:
+        """Delete a device.
+
+        Parameters
+        ----------
+        device_id : int
+            The id of the device to delete
+
+        Returns
+        -------
+        True if the device was deleted, False otherwise.
+        """
+        query = DeviceModel.delete().where(DeviceModel.device_id == device_id)
         n_rows_deleted = query.execute()
         return n_rows_deleted >= 1
 
-# TODO: Turn this into a class decorator
+# TODO: Turn this into a class decorator.
 DATUM_TO_MODEL = {
+    # NOTE: DeviceDatum is intentionally commented out. All data are subclasses
+    # of this type and it should not be used to identify a dataclass. This
     # DeviceDatum: DeviceDatumModel,
     TemperatureDatum: TemperatureDatumModel,
     BloodPressureDatum: BloodPressureDatumModel,
@@ -473,9 +577,28 @@ DATUM_TO_MODEL = {
 }
 
 class DataStorage(SqliteStorage):
+    """A SQLite storage class for device data."""
+
     tables = DATA_TABLES
 
-    def _model_for_instance(self, instance) -> DeviceDatumModel:
+    def _model_for_instance(self, instance: DeviceDatum) -> DeviceDatumModel:
+        """Get the peewee.Model class definition that corresponds
+        to the Datum instance type passed in.
+
+        Parameters
+        ----------
+        instance : DeviceDatum
+            An instance of a datum subclass.
+
+        Returns
+        -------
+        The corresponding SQLite model class definition for the DeviceDatum instance passed in.
+
+        Raises
+        ------
+        ValueError if there is no dataclass mapping for the DeviceDatum instance
+        passd in.
+        """
         for datum_cls, model_cls in DATUM_TO_MODEL.items():
             if isinstance(instance, datum_cls):
                 return model_cls
@@ -483,11 +606,29 @@ class DataStorage(SqliteStorage):
         raise ValueError(f"No datum class found for instance: {instance.__name__}")
 
     def create(self, data: DeviceDatum):
+        """Log a device datum to the database."""
         Model = self._model_for_instance(data)
         instance = Model.from_dataclass(data)
         instance.save()
         return instance.to_dataclass()
 
+    def delete(self, datum_id: int):
+        raise NotImplementedError("Data cannot be deleted once logged into the database.")
+
+    def update(self, datum_id: int):
+        """Data cannot be updated once logged to the database."""
+        raise NotImplementedError("Data cannot be updated once logged into the database.")
+
 
 def store_data(data: list[DeviceDatum], storage: DataStorage):
+    """A helper function to persist data to the database.
+
+    Parameters
+    ----------
+    data : list[DeviceDatum]
+        Sepcific data instances to be logged to the database.
+    storage : DataStorage
+        The instance of the data storage proxy used to persists
+        data.
+    """
     return list(map(storage.create, data))

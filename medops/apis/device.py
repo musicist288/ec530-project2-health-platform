@@ -61,7 +61,7 @@ def device_create():
     if errors:
         return error_response(errors)
 
-    return jsonify(device)
+    return jsonify(device.to_dict())
 
 class DeviceEndpoint:
 
@@ -114,7 +114,7 @@ class DeviceEndpoint:
         else:
             # We don't want to save the model if there were errors
             updated = models.get_storage("devices").update(device)
-            return jsonify(updated), 200
+            return jsonify(updated.to_dict()), 200
 
     @staticmethod
     def get(device_id: int):
