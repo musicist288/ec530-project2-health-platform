@@ -13,7 +13,7 @@ from flask import (
 )
 
 from .common import error_response
-from ..models import device_models
+from ..models import device_models, get_storage
 
 DATA_API_BLUEPRINT = Blueprint("data", __name__)
 
@@ -87,8 +87,7 @@ class Endpoints:
         if errors:
             return error_response(errors=errors)
 
-        device_models.store_data(to_store)
-
+        device_models.store_data(to_store, get_storage("data"))
         return "", 201
 
 

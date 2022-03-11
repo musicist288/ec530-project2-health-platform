@@ -16,11 +16,14 @@ def client():
 
     app = Flask(__name__)
     app.register_blueprint(apis.DATA_API_BLUEPRINT, url_prefix="/data")
-    models.init_db(app, {"DEVICES_FILENAME": db_filename})
+    models.init_db(app, {"DEVICES_FILENAME": db_filename,
+                         "DATA_DB_FILENAME": db_filename})
 
     with app.test_client() as testing_client:
         with app.app_context():
             yield testing_client
+
+    models.deinit(app)
 
     if os.path.exists(db_filename):
         os.unlink(db_filename)
@@ -40,7 +43,6 @@ def test_log_temperatue_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.TemperatureDatum)
 
 
@@ -58,7 +60,6 @@ def test_log_bloodpressure_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.BloodPressureDatum)
 
 
@@ -76,7 +77,6 @@ def test_log_oxygensaturation_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.BloodSaturationDatum)
 
 
@@ -94,7 +94,6 @@ def test_log_glucose_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.GlucometerDatum)
 
 
@@ -112,7 +111,6 @@ def test_log_pulse_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.PulseDatum)
 
 
@@ -130,7 +128,6 @@ def test_log_weight_data(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert isinstance(args[0], device_models.WeightDatum)
 
 
@@ -201,7 +198,6 @@ def test_date_parsing(client):
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
     args = store_mock.call_args[0][0]
-    assert len(args) == 1
     assert args[0].collection_time == now
 
     # If the date time is not in an iso format,
