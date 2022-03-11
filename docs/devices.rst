@@ -59,4 +59,11 @@ Device and Data Models
 .. autoclass:: DeviceAssignment
     :members:
 
-|
+
+Relational Models
+-----------------
+The device relational models are tightly related to the Device model
+and is intended to
+
+.. autoclass:: DeviceModel
+    :members:
