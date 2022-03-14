@@ -136,7 +136,7 @@ paths:
         "200":
           description: "Device deleted successfully."
 
-  /message:
+  /messages:
     post:
       summary: "Send a message to other users."
       tags:
@@ -163,7 +163,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error-UnprocessableEntity"
-  /message/query:
+  /messages/query:
     post:
       summary: "Query for message logs"
       tags:

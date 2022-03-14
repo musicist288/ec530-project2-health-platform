@@ -29,7 +29,7 @@ from .models import init_db, deinit
 APP = Flask(__name__)
 APP.register_blueprint(DEVICES_API_BLUEPRINT, url_prefix="/devices")
 APP.register_blueprint(DATA_API_BLUEPRINT, url_prefix="/data")
-APP.register_blueprint(MESSAGES_API_BLUEPRINT, url_prefix="/chat")
+APP.register_blueprint(MESSAGES_API_BLUEPRINT, url_prefix="/messages")
 
 class Config:
     def __init__(self):

@@ -112,7 +112,7 @@ class MessagesQueryEndpoint:
         return jsonify(resp_data)
 
 
-@MESSAGES_API_BLUEPRINT.route("/", methods=["POST"])
+@MESSAGES_API_BLUEPRINT.route("", methods=["POST"])
 def message_route():
     if request.method == "POST":
         return MessageEndpoints.post()

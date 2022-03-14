@@ -31,7 +31,7 @@ def test_post_valid_message(client):
         text="My message",
         attachments=[]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 200
     assert resp.json['timestamp'] is not None
 
@@ -43,7 +43,7 @@ def test_missing_recipients(client):
         text="My message",
         attachments=[]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -54,7 +54,7 @@ def test_self_send_not_allowed(client):
         text="My message",
         attachments=[]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -65,7 +65,7 @@ def test_missing_content(client):
         text="",
         attachments=[]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -79,7 +79,7 @@ def test_attachment_only(client):
             "url": "https://audiosomthing"
         }]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 200
 
 
@@ -93,7 +93,7 @@ def test_invalid_attachment_type(client):
             "url": "https://audiosomthing"
         }]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -107,7 +107,7 @@ def test_malformed_attachment_missing_url(client):
             "url": ""
         }]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -120,7 +120,7 @@ def test_malformed_attachment_missing_field(client):
             "type": "audio"
         }]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
@@ -130,7 +130,7 @@ def test_missing_sender(client):
         text="",
         attachments=[]
     )
-    resp = client.post("/messages/", json=request_data)
+    resp = client.post("/messages", json=request_data)
     assert resp.status_code == 422
 
 
