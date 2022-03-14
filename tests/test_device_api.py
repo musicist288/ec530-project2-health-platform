@@ -33,7 +33,7 @@ def create_valid_device(client):
         serial_number=None,
         current_firmware_version="1.0.0"
     )
-    resp = client.post("/devices/", json=request_data)
+    resp = client.post("/devices", json=request_data)
     assert resp.status_code == 200
     return request_data, resp
 
@@ -62,7 +62,7 @@ def test_create_device_missing_required_fields(client):
         serial_number=None,
         current_firmware_version="1.0.0"
     )
-    resp = client.post("/devices/", json=request_data)
+    resp = client.post("/devices", json=request_data)
 
     assert resp.status_code == 422
     assert "errors" in resp.json
@@ -80,7 +80,7 @@ def test_create_device_empty_required_field(client):
         serial_number=None,
         current_firmware_version="1.0.0"
     )
-    resp = client.post("/devices/", json=request_data)
+    resp = client.post("/devices", json=request_data)
 
     assert resp.status_code == 422
     assert "errors" in resp.json

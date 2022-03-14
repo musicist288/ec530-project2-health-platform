@@ -9,7 +9,8 @@ from typing import Optional
 
 from flask import (
     Blueprint,
-    request
+    request,
+    jsonify
 )
 
 from .common import error_response
@@ -39,7 +40,8 @@ class Endpoints:
 
     @staticmethod
     def get():
-        pass
+        data = get_storage("data").query()
+        return jsonify(data=[d.to_dict() for d in data])
 
     @staticmethod
     def post():
@@ -91,7 +93,7 @@ class Endpoints:
         return "", 201
 
 
-@DATA_API_BLUEPRINT.route("/", methods=["GET", "POST"])
+@DATA_API_BLUEPRINT.route("", methods=["GET", "POST"])
 def data_endpoints():
     if request.method == "GET":
         return Endpoints.get()

@@ -19,11 +19,13 @@ from .. import models
 DEVICES_API_BLUEPRINT = Blueprint("devices", __name__)
 
 
-@DEVICES_API_BLUEPRINT.route("/", methods=["GET"])
+@DEVICES_API_BLUEPRINT.route("", methods=["GET"])
 def device_query():
-    return "", 501
+    devices = models.get_storage("devices")
+    existing = devices.query()
+    return jsonify(devices=[e.to_dict() for e in existing])
 
-@DEVICES_API_BLUEPRINT.route("/", methods=["POST"])
+@DEVICES_API_BLUEPRINT.route("", methods=["POST"])
 def device_create():
     """Create a new device.
 

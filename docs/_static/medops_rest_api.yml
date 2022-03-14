@@ -39,24 +39,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error-UnprocessableEntity"
-  /device:
+  /devices:
     get:
-      summary: "Query for devices in the system"
+      summary: |
+        Query for devices in the system. Currently this function only
+        has the ability to list all devices in the system.
       tags:
       - "Devices"
-      parameters:
-        - in: "query"
-          name: "user_assigned"
-          description: "Query for devices assigned to a user"
-          required: false
-          schema:
-            type: "integer"
-        - in: "query"
-          name: "device_type"
-          description: "Query devices by their device type id."
-          required: false
-          schema:
-            type: "integer"
       responses:
         "200":
           description: "Query successful"
@@ -230,37 +219,12 @@ components:
         serial_number:
           type: string
           nullable: true
-        user_assignment:
-          description: "The user ID of the patient to whom the device is assigned. If updating this field, the assigner field must also be specified. If clearning this field by setting it to null, the assigner field will be ignored and cleard."
-          type: integer
+        mac_address:
+          type: string
           nullable: true
-        assigner:
-          type: integer
-          nullable: true
-          description: "The user ID of the medical staff who assigned the device to the user. This field is required if updating the user_assignment field to a non-null patient. If ths user_assignment field is set to null, this field will be cleared."
-        device_type:
-          type: integer
-          description: "The device type ID of the type of device."
         current_firmware_version:
           type: string
           description: "A string indicating the current firmware version running on the device."
-    DeviceTypeFull:
-      allOf:
-        - $ref: "#/components/schemas/DeviceTypeBase"
-        - type: "object"
-          properties:
-            device_type_id:
-              type: "integer"
-              description: "The identifier for this device type."
-    DeviceTypeBase:
-      type: "object"
-      properties:
-        description:
-          description: "Description of the device type."
-        data_type:
-          description: "The device "
-          type: "string"
-          enum: ["number", "number_array", "string", "string_array"]
     Error-UnprocessableEntity:
       type: "object"
       properties:

@@ -38,7 +38,7 @@ def test_log_temperatue_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -55,7 +55,7 @@ def test_log_bloodpressure_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -72,7 +72,7 @@ def test_log_oxygensaturation_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -89,7 +89,7 @@ def test_log_glucose_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -106,7 +106,7 @@ def test_log_pulse_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -123,7 +123,7 @@ def test_log_weight_data(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -141,7 +141,7 @@ def test_data_type_mismatch(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 422
     # Make sure the call was not made to store data.
     assert store_mock.call_count == 0
@@ -156,7 +156,7 @@ def test_missing_required_fields(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 422
     # Make sure the call was not made to store data.
     assert store_mock.call_count == 0
@@ -166,7 +166,7 @@ def test_missing_required_fields(client):
         collection_time=datetime.now().isoformat(),
         data=dict(grams=23000),
     )])
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 422
     # Make sure the call was not made to store data.
     assert store_mock.call_count == 0
@@ -176,7 +176,7 @@ def test_missing_required_fields(client):
         collection_time=datetime.now().isoformat(),
         data_type="weight"
     )])
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 422
     # Make sure the call was not made to store data.
     assert store_mock.call_count == 0
@@ -193,7 +193,7 @@ def test_date_parsing(client):
     )])
 
     store_mock = apis.data.device_models.store_data = mock.MagicMock()
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 201
     # Make sure the call was made to store data.
     assert store_mock.call_count == 1
@@ -209,7 +209,7 @@ def test_date_parsing(client):
         data_type="temperature",
         data=dict(deg_c=36),
     )])
-    resp = client.post("/data/", json=request_data)
+    resp = client.post("/data", json=request_data)
     assert resp.status_code == 422
     # Make sure the call was made to store data.
     assert store_mock.call_count == 0

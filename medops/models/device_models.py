@@ -480,6 +480,11 @@ class DeviceStorage(SqliteStorage):
 
     tables = DEVICE_TABLES
 
+    def query(self):
+        query = DeviceModel.select()
+        models = list(query)
+        return [m.to_dataclass() for m in models]
+
     def get(self, device_id: int) -> Optional[Device]:
         """Get a device by its id.
 
@@ -618,6 +623,18 @@ class DataStorage(SqliteStorage):
     def update(self, datum_id: int):
         """Data cannot be updated once logged to the database."""
         raise NotImplementedError("Data cannot be updated once logged into the database.")
+
+    def query(self):
+        """"Query data from the database. Currently this only
+        allows a very inefficient select all query on all datum
+        models. This should be extended quite a bit to support
+        filtering data."""
+        data = []
+        for model in DATUM_TO_MODEL.values():
+            data.extend(list(model.select()))
+
+        data = sorted(data, key=lambda d: d.collection_time)
+        return [m.to_dataclass() for m in data]
 
 
 def store_data(data: list[DeviceDatum], storage: DataStorage):
