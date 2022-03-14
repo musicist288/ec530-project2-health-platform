@@ -89,7 +89,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error-UnprocessableEntity"
-  /device/{device_id}:
+  /devices/{device_id}:
     parameters:
       - name: device_id
         in: path
