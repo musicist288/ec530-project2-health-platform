@@ -4,7 +4,7 @@
     operations team whether they want to host this API separately or in
     conjunction with another set of APIs.
 """
-
+import peewee
 from flask import (
     Blueprint,
     request,
@@ -58,6 +58,8 @@ def device_create():
                 date_of_purchase=data.get("date_of_purchase", None),
             ))
         except ValueError as err:
+            errors.append(str(err))
+        except peewee.IntegrityError as err:
             errors.append(str(err))
 
     if errors:
