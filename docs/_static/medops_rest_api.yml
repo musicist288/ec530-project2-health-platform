@@ -194,6 +194,175 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /users:
+    post:
+      summary: "Create a user"
+      tags:
+        - "Users"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserFull"
+        "422":
+          description: |
+            There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        description: The ID of the user.
+        required: true
+        schema:
+          type: "integer"
+    get:
+      summary: "Get a user"
+      tags:
+        - "Users"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserFull"
+        "404":
+          description: "Not found"
+    post:
+      summary: "Update a user"
+      description: |
+        When updating a user, whatever role IDs are included will be what
+        is set for the user. Any roles the user once had that are omitted
+        from this list will get deleted.
+      tags:
+        - "Users"
+      requestBody:
+        content:
+          application:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserFull"
+        "404":
+          description: "Not found"
+        "422":
+          description: |
+            There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+    delete:
+      summary: "Delete a user"
+      tags:
+        - "Users"
+      responses:
+        "201":
+          description: "Ok"
+  /users/roles:
+    post:
+      summary: "Create a user role"
+      tags:
+        - "Users"
+      requestBody:
+        content:
+          application:
+            schema:
+              $ref: "#/components/schemas/UserRoleCreate"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_role:
+                    $ref: "#/components/schemas/UserRoleFull"
+        "422":
+          description: |
+            There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /users/roles/{role_id}:
+    parameters:
+      - name: role_id
+        in: path
+        description: The ID of the user role.
+        required: true
+        schema:
+          type: "integer"
+    get:
+      summary: "Get a user role"
+      tags:
+        - "Users"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_role:
+                    $ref: "#/components/schemas/UserRoleFull"
+        "404":
+          description: "Not found"
+    post:
+      summary: "Update a user role"
+      tags:
+        - "Users"
+      requestBody:
+        content:
+          application:
+            schema:
+              $ref: "#/components/schemas/UserRoleCreate"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_role:
+                    $ref: "#/components/schemas/UserRoleFull"
+        "404":
+          description: "Not Found"
+        "422":
+          description: |
+            There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
 components:
   schemas:
     Device-Create:
@@ -390,3 +559,57 @@ components:
         limit:
           type: integer
           minimum: 1
+    UserRoleCreate:
+      type: object
+      required:
+        - "role_name"
+      properties:
+        role_name:
+          description: |
+            A descriptive name for the role.
+    UserRoleFull:
+      allOf:
+        - $ref: "#/components/schemas/UserRoleCreate"
+        - type: object
+          properties:
+            role_id:
+              type: integer
+    UserBase:
+      type: object
+      required:
+        - "first_name"
+        - "last_name"
+        - "dob"
+        - "roles"
+      properties:
+        first_name:
+          type: string
+          description: The first naem of the user.
+        last_name:
+          type: string
+          description: The last name of the user.
+        dob:
+          type: string
+          format: date
+          description: "Date of birth"
+    UserCreate:
+      allOf:
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          properties:
+            role_ids:
+              type: array
+              items:
+                type: integer
+    UserUpdate:
+      allOf:
+        - $ref: "#/components/schemas/UserCreate"
+    UserFull:
+      allOf:
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          properties:
+            roles:
+              type: array
+              items:
+                  $ref: "#/components/schemas/UserRoleFull"
