@@ -60,6 +60,7 @@ class Config:
         init_db(app, {
             "DEVICES_FILENAME": self.sqlite_db_filename,
             "DATA_DB_FILENAME": self.sqlite_db_filename,
+            "USERS_DB_FILENAME": self.sqlite_db_filename,
             "MONGO_CONNECTION_STRING": self.mongo_connection_string,
             "MONGO_DATABASE": self.mongo_chat_db_name,
         })
