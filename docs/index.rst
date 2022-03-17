@@ -37,3 +37,4 @@ you're in the right spot, check out the contents below.
    chat
    devices
    data
+   users

@@ -2,8 +2,11 @@
     Models contain the in-memory storage data
 """
 from pathlib import Path
-from .device_models import DeviceStorage, Storage, DataStorage
+from .device_models import DeviceStorage, DataStorage
+from .user_models import UserStorage
+from .base import Storage
 from .device_models import Device # noqa: F401
+from .user_models import User, UserRole # noqa: F401
 from .chat_model import MessageStore
 
 from flask import current_app
@@ -22,6 +25,7 @@ def init_db(app, config):
     """
     devices_file = config.get("DEVICES_FILENAME", "")
     data_db_file = config.get("DATA_DB_FILENAME", "")
+    users_db_file = config.get("USERS_DB_FILENAME", "")
     mongo_connection = config.get("MONGO_CONNECTION_STRING", "")
     mongo_database = config.get("MONGO_DATABASE", "")
 
@@ -38,6 +42,12 @@ def init_db(app, config):
 
         app.config["STORAGE"]["data"] = DataStorage(data_db_file)
 
+    if users_db_file:
+        if isinstance(users_db_file, str):
+            users_db_file = Path(users_db_file)
+
+        app.config["STORAGE"]["users"] = UserStorage(users_db_file)
+
     if mongo_connection and mongo_database:
         app.config["STORAGE"]["messages"] = MessageStore(mongo_connection, mongo_database)
 
@@ -50,6 +60,10 @@ def deinit(app):
     data_storage: Optional[DataStorage] = app.config['STORAGE'].get("data")
     if data_storage:
         data_storage.deinit()
+
+    user_storage: Optional[UserStorage] = app.config['STORAGE'].get("users")
+    if user_storage:
+        user_storage.deinit()
 
 
 def get_storage(name) -> Storage:

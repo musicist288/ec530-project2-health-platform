@@ -1,14 +1,289 @@
 """
-This module contains the models representing users
-in the MedOps system.
+    This module contains the models representing users and user roles
+    in the MedOps system.
 """
-from dataclasses import dataclass
+from datetime import date
+import attr
+from attr import asdict
+from typing import Optional
+from peewee import (
+    AutoField,
+    TextField,
+    ForeignKeyField,
+    DateField
+)
 
-@dataclass
+from .base import (
+    BaseModel,
+    SqliteStorage,
+    register
+)
+
+USER_TABLES = []
+USER_ROLE_TABLES = []
+
+@attr.s(auto_attribs=True, kw_only=True)
+class UserRole:
+    """Simple class to define user roles that can be assigned to users.
+
+    Parameters
+    ----------
+    role_id : Optional[int]
+        The identifier for the role. This should be assigned automatically
+        by the underlying storage mechanism.
+
+    role_name : str
+        A human friendly name for the role.
+    """
+    role_id: Optional[int] = None
+    role_name: str
+
+    def to_dict(self) -> dict:
+        """Serialize the UserRole class as a dictionary"""
+        return asdict(self)
+
+    def to_json(self):
+        """Serialize the UserRole class as a dictionary that is
+        json serializable"""
+        return self.to_dict()
+
+    @classmethod
+    def from_json(cls, json_data):
+        """Create an instance of a UserRole from a serialized json string."""
+        return cls(**json_data)
+
+
+@attr.s(auto_attribs=True, kw_only=True)
 class User:
-    """A model representing a user. This is currently a
-    stub class and will be filled in later when the user modules
-    are more fully fleshed out.
+    """Data class representing a user.
+
+    Parameters
+    ----------
+    user_id : Optional[int]
+        The internal identifier for the user. This should be None when
+        creating a new user and will be automatically assigned the storage
+        mechanism.
+    dob : date
+        The birthdate of the user
+    first_name : str
+        The user's first name
+    last_name : str
+        The user's last name
+    roles : list[UserRole]
+        A list of roles to which the user is assigned. These must correspond
+        to existing UserRoles in the database.
+    """
+    user_id: Optional[int] = None
+    dob: date
+    first_name: str
+    last_name: str
+    roles: list[UserRole]
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    def to_json(self):
+        data = self.to_dict()
+        data['dob'] = data['dob'].isoformat()
+        return data
+
+    @classmethod
+    def from_json(cls, json_data):
+        roles = [UserRole(**r) for r in json_data['roles']]
+        json_data['dob'] = date.fromisoformat(json_data['dob'])
+        json_data['roles'] = roles
+        return cls(**json_data)
+
+
+@register(USER_TABLES)
+class UserModel(BaseModel):
+    """The relational model for persisting Users
+
+    See the User class for a description of the parameters.
+
+    Note that roles is not a database field. This allows the model to do
+    what is necesasry in terms of converting between UserRole instances
+    and whatever mechanism is implemented for storing the many-to-many
+    relationship.
+    """
+    user_id = AutoField()
+    dob = DateField()
+    first_name = TextField()
+    last_name = TextField()
+    roles = None
+
+    def to_dataclass(self) -> User:
+        """Create a Device data class from a model instance."""
+        self.roles = []
+        for relation in self.userroles.select():
+            self.roles.append(relation.role.to_dataclass())
+
+        return User(
+            user_id=self.user_id,
+            dob=self.dob,
+            first_name=self.first_name,
+            last_name=self.last_name,
+            roles=self.roles
+        )
+
+    def save(self, *args, **kwargs):
+        """Save a model to the database."""
+        super().save(*args, **kwargs)
+        query = UserRoleUserModel.select().where(
+            UserRoleUserModel.user_id == self.user_id)
+
+        existing_roles = {x.role_id for x in query}
+        requested_roles = {x.role_id for x in self.roles}
+
+        to_delete = existing_roles - requested_roles
+        to_create = requested_roles - existing_roles
+
+        for role_id in to_create:
+            UserRoleUserModel.create(role_id=role_id, user_id=self.user_id)
+
+        for role_id in to_delete:
+            query = UserRoleUserModel.delete().where(
+                (UserRoleUserModel.role_id == role_id) & (UserRoleUserModel.user_id == self.user_id))
+            query.execute()
+
+    @classmethod
+    def from_dataclass(cls, user: User):
+        """Create a DeviceModel instance from a data class instance."""
+        return cls(
+            user_id=user.user_id,
+            dob=user.dob,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            roles=user.roles
+        )
+
+
+@register(USER_ROLE_TABLES)
+class UserRoleModel(BaseModel):
+    """Relational model for persisting user roles.
+
+    See the UserRole class for a description of the different fields.
+    """
+    role_id = AutoField()
+    role_name = TextField()
+
+    def to_dataclass(self) -> UserRole:
+        """Create a Device data class from a model instance."""
+        return UserRole(
+            role_id=self.role_id,
+            role_name=self.role_name
+        )
+
+    @classmethod
+    def from_dataclass(cls, user_role: UserRole):
+        """Create a DeviceModel instance from a data class instance."""
+        return cls(
+            role_id=user_role.role_id,
+            role_name=user_role.role_name
+        )
+
+
+@register(USER_TABLES)
+class UserRoleUserModel(BaseModel):
+    """A many to many replationship for associating users with roles."""
+    user = ForeignKeyField(UserModel, backref="userroles")
+    role = ForeignKeyField(UserRoleModel, backref="userroles")
+
+
+class UserModelStorage(SqliteStorage):
+    """Storage class for persisting UserModels to a sqlite database"""
+    tables = USER_TABLES
+
+    def query(self):
+        pass
+
+    def get(self, user_id: int) -> Optional[User]:
+        query = UserModel.select().where(UserModel.user_id == user_id)
+        if query.count() == 0:
+            return None
+
+        return query[0].to_dataclass()
+
+    def create(self, user: User) -> User:
+        if user.user_id is not None:
+            raise ValueError("Creating a user must not be none.")
+
+        model = UserModel.from_dataclass(user)
+        model.save()
+        return model.to_dataclass()
+
+    def update(self, user: User) -> User:
+        if user.user_id is None:
+            raise ValueError("Use create_user method to create a new user.")
+
+        model = UserModel.from_dataclass(user)
+        model.save()
+        return model.to_dataclass()
+
+    def delete(self, user_id: int) -> bool:
+        UserRoleUserModel.delete().where(UserRoleUserModel.user_id == user_id).execute()
+        query = UserModel.delete().where(UserModel.user_id == user_id)
+        n_rows_deleted = query.execute()
+        return n_rows_deleted >= 1
+
+
+class UserRoleModelStorage(SqliteStorage):
+    """Storage class for persisting UserRoleModels to a sqlite database"""
+    tables = USER_ROLE_TABLES
+
+    def query(self):
+        pass
+
+    def get(self, role_id: int) -> Optional[UserRole]:
+        query = UserRoleModel.select().where(UserRoleModel.role_id == role_id)
+        if query.count() == 0:
+            return None
+
+        return query[0].to_dataclass()
+
+    def create(self, role: UserRole) -> UserRole:
+        model = UserRoleModel.from_dataclass(role)
+        model.save()
+        return model.to_dataclass()
+
+    def update(self, role: UserRole) -> UserRole:
+        query = UserRoleModel.select().where(UserRoleModel.role_id == role.role_id)
+        if query.count() == 0:
+            raise ValueError(f"User Role does not exist: {role.role_id}")
+
+        model = query[0]
+        model.role_name = role.role_name
+        model.save()
+        return model.to_dataclass()
+
+    def delete(self, role_id: int) -> bool:
+        query = UserRoleModel.delete().where(UserRoleModel.role_id == role_id)
+        n_rows_deleted = query.execute()
+        return n_rows_deleted >= 1
+
+
+class UserStorage:
+    """A wrapper class to expose user storage functionality. This model
+    requires that both Users and UserRoles are stored in the same database
+
+    Parameters
+    ----------
+    filename : str
+        The file path to the sqlite database to use.
+
+    Attributes
+    ----------
+    users : UserModelStorage
+        A SqliteStorage implementation of user storage
+
+    user_roles : UserRoleModelStorage
+        A SqliteStorage implementation of user role storage
     """
 
-    user_id: int
+    def __init__(self, filename):
+        self.users = UserModelStorage(filename)
+        self.user_roles = UserRoleModelStorage(filename)
+
+    def deinit(self):
+        self.users.deinit()
+        self.user_roles.deinit()

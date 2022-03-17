@@ -8,5 +8,5 @@ from flask import (
     jsonify
 )
 
-def error_response(errors: list[str]) -> Tuple[Response, int]:
-    return jsonify(errors=errors, count=len(errors)), 422
+def error_response(errors: list[str], status_code=422) -> Tuple[Response, int]:
+    return jsonify(errors=errors, count=len(errors)), status_code
