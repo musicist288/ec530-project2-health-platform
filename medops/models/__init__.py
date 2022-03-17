@@ -2,7 +2,8 @@
     Models contain the in-memory storage data
 """
 from pathlib import Path
-from .device_models import DeviceStorage, Storage, DataStorage
+from .device_models import DeviceStorage, DataStorage
+from .base import Storage
 from .device_models import Device # noqa: F401
 from .chat_model import MessageStore
 
