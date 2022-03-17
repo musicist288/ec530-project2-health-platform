@@ -1,3 +1,5 @@
+.. _rest-api-documentation:
+
 REST API
 ========
 

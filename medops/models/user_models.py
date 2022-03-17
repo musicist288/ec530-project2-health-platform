@@ -191,8 +191,7 @@ class UserRoleUserModel(BaseModel):
 
 
 class UserModelStorage(SqliteStorage):
-    """Storage class for
-    """
+    """Storage class for persisting UserModels to a sqlite database"""
     tables = USER_TABLES
 
     def query(self):
@@ -229,7 +228,7 @@ class UserModelStorage(SqliteStorage):
 
 
 class UserRoleModelStorage(SqliteStorage):
-    """Storage class for"""
+    """Storage class for persisting UserRoleModels to a sqlite database"""
     tables = USER_ROLE_TABLES
 
     def query(self):
@@ -272,7 +271,7 @@ class UserStorage:
     filename : str
         The file path to the sqlite database to use.
 
-    Properties
+    Attributes
     ----------
     users : UserModelStorage
         A SqliteStorage implementation of user storage
