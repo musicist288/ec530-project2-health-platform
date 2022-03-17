@@ -23,6 +23,7 @@ def user_storage():
     user_storage = UserStorage(FILENAME)
     yield user_storage
     user_storage.deinit()
+    cleanup()
 
 def test_create_user_role(user_storage):
     role = UserRole(role_name="Admin")
@@ -90,7 +91,6 @@ def test_delete_user(user_storage):
 def test_update_user(user_storage):
     role = UserRole(role_name="Admin")
     role = user_storage.user_roles.create(role)
-
     user = User(dob=date(year=1990, month=1, day=1),
                 first_name="John",
                 last_name="Doe",
@@ -104,3 +104,39 @@ def test_update_user(user_storage):
     assert updated.dob == created.dob
     read = user_storage.users.get(updated.user_id)
     assert read.dob == updated.dob
+
+
+def test_update_user_roles(user_storage):
+    admin = UserRole(role_name="Admin")
+    patient = UserRole(role_name="Patient")
+
+    # Create the basline user and with admin roles.
+    admin = user_storage.user_roles.create(admin)
+    patient = user_storage.user_roles.create(patient)
+    user = User(dob=date(year=1990, month=1, day=1),
+                first_name="John",
+                last_name="Doe",
+                roles=[admin])
+    user = user_storage.users.create(user)
+
+    user.roles.append(patient)
+    user_storage.users.update(user)
+    user = user_storage.users.get(user.user_id)
+    assert admin in user.roles
+    assert patient in user.roles
+
+    user.roles = []
+    user_storage.users.update(user)
+    user = user_storage.users.get(user.user_id)
+    assert len(user.roles) == 0
+
+    user.roles = [admin]
+    user_storage.users.update(user)
+    user = user_storage.users.get(user.user_id)
+    assert admin in user.roles
+
+    user.roles = [patient]
+    user_storage.users.update(user)
+    user = user_storage.users.get(user.user_id)
+    assert admin not in user.roles
+    assert patient in user.roles

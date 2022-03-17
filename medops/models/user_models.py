@@ -129,12 +129,22 @@ class UserModel(BaseModel):
     def save(self, *args, **kwargs):
         """Save a model to the database."""
         super().save(*args, **kwargs)
-        for role in (self.roles or []):
-            rel = UserRoleUserModel.select().where(
-                UserRoleUserModel.role_id == role.role_id & UserRoleUserModel.user_id == self.user_id)
+        query = UserRoleUserModel.select().where(
+            UserRoleUserModel.user_id == self.user_id)
 
-            if rel.count() == 0:
-                UserRoleUserModel.create(role_id=role.role_id, user_id=self.user_id)
+        existing_roles = {x.role_id for x in query}
+        requested_roles = {x.role_id for x in self.roles}
+
+        to_delete = existing_roles - requested_roles
+        to_create = requested_roles - existing_roles
+
+        for role_id in to_create:
+            UserRoleUserModel.create(role_id=role_id, user_id=self.user_id)
+
+        for role_id in to_delete:
+            query = UserRoleUserModel.delete().where(
+                (UserRoleUserModel.role_id == role_id) & (UserRoleUserModel.user_id == self.user_id))
+            query.execute()
 
     @classmethod
     def from_dataclass(cls, user: User):

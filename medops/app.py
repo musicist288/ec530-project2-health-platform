@@ -22,7 +22,8 @@ from flask import Flask
 from .apis import (
     DEVICES_API_BLUEPRINT,
     DATA_API_BLUEPRINT,
-    MESSAGES_API_BLUEPRINT
+    MESSAGES_API_BLUEPRINT,
+    USERS_API_BLUEPRINT
 )
 from .models import init_db, deinit
 
@@ -30,6 +31,7 @@ APP = Flask(__name__)
 APP.register_blueprint(DEVICES_API_BLUEPRINT, url_prefix="/devices")
 APP.register_blueprint(DATA_API_BLUEPRINT, url_prefix="/data")
 APP.register_blueprint(MESSAGES_API_BLUEPRINT, url_prefix="/messages")
+APP.register_blueprint(USERS_API_BLUEPRINT, url_prefix="/users")
 
 class Config:
     def __init__(self):
