@@ -23,7 +23,8 @@ from .apis import (
     DEVICES_API_BLUEPRINT,
     DATA_API_BLUEPRINT,
     MESSAGES_API_BLUEPRINT,
-    USERS_API_BLUEPRINT
+    USERS_API_BLUEPRINT,
+    S2T_BLUEPRINT_API
 )
 from .models import init_db, deinit
 
@@ -32,6 +33,7 @@ APP.register_blueprint(DEVICES_API_BLUEPRINT, url_prefix="/devices")
 APP.register_blueprint(DATA_API_BLUEPRINT, url_prefix="/data")
 APP.register_blueprint(MESSAGES_API_BLUEPRINT, url_prefix="/messages")
 APP.register_blueprint(USERS_API_BLUEPRINT, url_prefix="/users")
+APP.register_blueprint(S2T_BLUEPRINT_API, url_prefix="/s2t")
 
 class Config:
     def __init__(self):
@@ -53,6 +55,8 @@ class Config:
         if not self.sqlite_db_filename:
             raise ValueError("Missing environment variable SQLITEDB_FILENAME")
 
+        self.upload_folder = os.getenv("APP_UPLOAD_FOLDER")
+
     def init_app(self, app, from_env=False):
         if from_env:
             self.load_from_env()
@@ -64,6 +68,9 @@ class Config:
             "MONGO_CONNECTION_STRING": self.mongo_connection_string,
             "MONGO_DATABASE": self.mongo_chat_db_name,
         })
+
+        if self.upload_folder:
+            APP.config['UPLOAD_FOLDER'] = self.upload_folder
 
 
 @APP.route("/")

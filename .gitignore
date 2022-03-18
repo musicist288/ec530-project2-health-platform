@@ -1,5 +1,9 @@
 docs/_static/medops_rest_api.html
 *.db
+*.pbmm
+*.scorer
+*.sublime-*
+audio/
 
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,visualstudiocode,vim,emacs,python
 
