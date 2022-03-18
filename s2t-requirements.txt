@@ -1,0 +1,6 @@
+# These requirements are needed if running the speech to text
+# module.
+celery[redis]~=5.2.3
+numpy==1.21 # libros requires this
+librosa
+deepspeech

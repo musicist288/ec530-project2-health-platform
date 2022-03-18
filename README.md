@@ -24,6 +24,12 @@ source .venv/bin/activate (macOS/*nix)
 .venv/bin/activate.cmd (Windows)
 ```
 
+
+If you are running on linux with a strange architecture, you may need to install
+`llvm-11`, `llvm-11-dev`, `llvm-11-tools`, `build-essential`, etc.
+so that librosa can install properly. (Somehow llvm-lite ahs to get installed
+but it's a big pain.)
+
 Then install the requirements:
 
 ```
@@ -32,8 +38,9 @@ python -m pip install requirements
 
 This repository is configured to use [pre-commit](https://pre-commit.com/) to
 enforce coding styles, which will run flake8 and some other hooks to
-automatically fix things like trailing whitespace, line endings. To activate the pre-commit hooks run `pre-commit install` after the dependencies have been
-installed.
+automatically fix things like trailing whitespace, line endings. To activate the pre-commit hooks
+run `pre-commit install` after  the dependencies have beeninstalled.
+
 
 ### Documentation
 
