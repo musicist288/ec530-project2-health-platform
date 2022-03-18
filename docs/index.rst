@@ -38,3 +38,4 @@ you're in the right spot, check out the contents below.
    devices
    data
    users
+   speechtotext

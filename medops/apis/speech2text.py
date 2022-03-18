@@ -5,7 +5,7 @@ from flask import (
     current_app,
     jsonify
 )
-from ..speech2text import tasks
+from .. import speech2text
 from .common import error_response
 from werkzeug.utils import secure_filename
 
@@ -31,17 +31,17 @@ def submitjob():
     filename = secure_filename(filename)
     filepath = Path(current_app.config['UPLOAD_FOLDER']) / filename
     file_.save(filepath)
-    result = tasks.process.delay(str(filepath.absolute().resolve()))
+    result = speech2text.process.delay(str(filepath.absolute().resolve()))
     return jsonify(task_id=result.id)
 
 
 @S2T_BLUEPRINT_API.route("/<task_id>", methods=["GET"])
 def get_result(task_id):
     result = None
-    if not tasks.is_task_ready(task_id):
+    if not speech2text.is_task_ready(task_id):
         status = "PENDING"
     else:
         status = "FINISHED"
-        result = tasks.get_task_result(task_id)
+        result = speech2text.get_task_result(task_id)
 
     return jsonify(task_id=task_id, result=result, status=status)

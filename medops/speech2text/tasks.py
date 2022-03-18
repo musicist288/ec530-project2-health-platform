@@ -20,8 +20,33 @@ CELERYAPP = Celery(CELERY_NAME, broker=CELERY_BROKER_URL, backend=CELERY_BACKEND
 
 @CELERYAPP.task
 def process(filename: str):
+    """Extract text from the given audio file. The audio file passed in should
+    can be in any format that librosa understand. Librosa will read and
+    resample the file as necessary before passing it to DeepSpeech for text
+    extraction.
+
+    While this function is a celery task, it can also be used a pure model
+
+    Arguments
+    ---------
+    filename : str
+        Filepath to the audio file to process.
+
+    Returns
+    -------
+    A string of text extracted from the audio file, or None if the process
+    failed.
+    """
     if not Path(filename).exists():
         logging.error("File does not exist: %s", filename)
+        return None
+
+    if not DEEPSPEECH_MODEL or not Path(DEEPSPEECH_MODEL).exists():
+        logging.error("Not processing audio file. Deepspeech model file cannot be found: %s", DEEPSPEECH_MODEL)
+        return None
+
+    if not DEEPSPEECH_SCORER or not Path(DEEPSPEECH_SCORER).exists():
+        logging.error("Not processing audio file. Deepspeech scorer file cannot be found: %s", DEEPSPEECH_SCORER)
         return None
 
     try:
@@ -44,6 +69,19 @@ def process(filename: str):
 
 
 def is_task_ready(task_id: str) -> bool:
+    """If using the speech-to-text processing as a celery task, you can check
+    the status of the task using this function.
+
+    Arguments
+    ---------
+    task_id : str
+        The task id from the AsyncResult returned when using `process` as a
+        celery task.
+
+    Returns
+    -------
+    A boolean value explaining whether
+    """
     if not CELERY_BACKEND_URL:
         raise RuntimeError("No backend is configured. Results will not be stored.")
 
@@ -52,6 +90,19 @@ def is_task_ready(task_id: str) -> bool:
 
 
 def get_task_result(task_id: str) -> Optional[str]:
+    """Get the result of a task.
+
+    Arguments
+    ---------
+    task_id : str
+        The task id from the AsyncResult returned when using `process` as a
+        celery task.
+
+    Returns
+    -------
+    The text extrated from the audio file if available, otherwise None
+    """
+
     if not is_task_ready(task_id):
         return None
 

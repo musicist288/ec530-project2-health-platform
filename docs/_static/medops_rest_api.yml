@@ -363,6 +363,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /s2t:
+    post:
+      summary: "Upload a file for speech-to-text processing"
+      tags:
+        - "Speech to text"
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              description: "An audio file to process"
+              format: binary
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    description: |
+                      A task identifier to get the results when available.
+        "422":
+          description: "There was an error with the data provided"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+        "500":
+          description: "There was an error uploading or saving the file"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /s2t/{task_id}:
+    parameters:
+      - name: task_id
+        in: path
+        description: The ID of the task to monitor
+        required: true
+        schema:
+          type: "string"
+    get:
+      summary: "Get the results of a task"
+      tags:
+        - "Speech to text"
+      responses:
+        "200":
+          summary: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S2TResult"
 components:
   schemas:
     Device-Create:
@@ -613,3 +668,17 @@ components:
               type: array
               items:
                   $ref: "#/components/schemas/UserRoleFull"
+    S2TResult:
+      type: object
+      properties:
+        task_id:
+          type: string
+        status:
+          enum:
+            - "PENDING"
+            - "FINISHED"
+        result:
+          type: string
+          description: |
+            The text result of the processing if finished, otherwise it will
+            be null.
