@@ -40,12 +40,12 @@ Make sure to check out :ref:`rest-api-documentation`.
 
 .. currentmodule:: medops.speech2text
 
-.. autofunction: process
+.. autofunction:: process
 
 |
 
-.. autofunction: is_task_ready
+.. autofunction:: is_task_ready
 
 |
 
-.. autofunction: get_task_result
+.. autofunction:: get_task_result
