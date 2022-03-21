@@ -143,7 +143,7 @@ class MessageStore:
         -------
         A list of messages ordered from most historical to most recent.
         """
-        query = {"timestamp": {}}
+        query = {}
         if since is not None and until is not None:
             query["timestamp"] = {"$gt": since, "$lt": until}
         elif since is not None:
