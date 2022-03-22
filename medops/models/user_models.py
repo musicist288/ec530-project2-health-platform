@@ -47,11 +47,6 @@ class UserRole:
         json serializable"""
         return self.to_dict()
 
-    @classmethod
-    def from_json(cls, json_data):
-        """Create an instance of a UserRole from a serialized json string."""
-        return cls(**json_data)
-
 
 @attr.s(auto_attribs=True, kw_only=True)
 class User:
@@ -90,14 +85,17 @@ class User:
     def to_json(self):
         data = self.to_dict()
         data['dob'] = data['dob'].isoformat()
-        return data
 
-    @classmethod
-    def from_json(cls, json_data):
-        roles = [UserRole(**r) for r in json_data['roles']]
-        json_data['dob'] = date.fromisoformat(json_data['dob'])
-        json_data['roles'] = roles
-        return cls(**json_data)
+        for m in data['medical_staff']:
+            m['dob'] = m['dob'].isoformat()
+            m.pop('medical_staff')
+            m.pop('patients')
+
+        for m in data['patients']:
+            m['dob'] = m['dob'].isoformat()
+            m.pop('patients')
+            m.pop('medical_staff')
+        return data
 
 
 @register(USER_TABLES)
@@ -123,14 +121,38 @@ class UserModel(BaseModel):
         for relation in self.userroles.select():
             self.roles.append(relation.role.to_dataclass())
 
+        patients = []
+        for p in self.patients:
+            patients.append(User(
+                user_id=p.patient.user_id,
+                dob=p.patient.dob,
+                first_name=p.patient.first_name,
+                last_name=p.patient.last_name,
+                roles=p.patient.roles,
+                patients=[],
+                medical_staff=[]
+            ))
+
+        medical_staff = []
+        for p in self.medical_staff:
+            medical_staff.append(User(
+                user_id=p.professional.user_id,
+                dob=p.professional.dob,
+                first_name=p.professional.first_name,
+                last_name=p.professional.last_name,
+                roles=p.professional.roles,
+                patients=[],
+                medical_staff=[]
+            ))
+
         return User(
             user_id=self.user_id,
             dob=self.dob,
             first_name=self.first_name,
             last_name=self.last_name,
             roles=self.roles,
-            patients=[p.patient for p in self.patients],
-            medical_staff=[m.professional for m in self.medical_staff]
+            patients=patients,
+            medical_staff=medical_staff
         )
 
     def _update_user_roles(self):

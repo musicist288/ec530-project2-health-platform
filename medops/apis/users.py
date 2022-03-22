@@ -55,6 +55,36 @@ class UserEndpoint:
                 else:
                     roles.append(role)
 
+        if "patient_ids" in data:
+            if data['patient_ids']:
+                patients = models.get_storage("users").get(data['patient_ids'])
+            else:
+                patients = []
+
+            if not all(patients):
+                unknown = []
+                for p, req in zip(patients, data['patient_ids']):
+                    if p is None:
+                        unknown.append(req)
+                errors.append("Unknown user ids for patients: %s" % (", ".join(unknown)))
+            else:
+                kwargs['patients'] = patients
+
+        if "medical_staff_ids" in data:
+            if data['medical_staff_ids']:
+                staff = models.get_storage("users").users.get(data["medical_staff_ids"])
+            else:
+                staff = []
+
+            if not all(staff):
+                unknown = []
+                for p, req in zip(staff, data['patient_ids']):
+                    if p is None:
+                        unknown.append(req)
+                errors.append("Unknown user ids for patients: %s" % (", ".join(unknown)))
+            else:
+                kwargs['medical_staff'] = staff
+
         if errors:
             return error_response(errors)
         else:
@@ -106,6 +136,36 @@ class UserEndpoint:
                 roles.append(role)
 
         user.roles = roles
+
+        if "patient_ids" in patch_data:
+            if patch_data['patient_ids']:
+                patients = models.get_storage("users").get(patch_data['patient_ids'])
+            else:
+                patients = []
+
+            if not all(patients):
+                unknown = []
+                for p, req in zip(patients, patch_data['patient_ids']):
+                    if p is None:
+                        unknown.append(req)
+                errors.append("Unknown user ids for patients: %s" % (", ".join(unknown)))
+            else:
+                user.patients = patients
+
+        if "medical_staff_ids" in patch_data:
+            if patch_data['medical_staff_ids']:
+                staff = models.get_storage("users").users.get(patch_data["medical_staff_ids"])
+            else:
+                staff = []
+
+            if not all(staff):
+                unknown = []
+                for p, req in zip(staff, patch_data['patient_ids']):
+                    if p is None:
+                        unknown.append(req)
+                errors.append("Unknown user ids for patients: %s" % (", ".join(unknown)))
+            else:
+                user.medical_staff = staff
 
         if errors:
             return error_response(errors=errors)

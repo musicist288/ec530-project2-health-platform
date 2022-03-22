@@ -30,12 +30,15 @@ def client():
     cleanup()
 
 
-def create_valid_user(client):
+def create_valid_user(client, role_ids=None):
+    if not role_ids:
+        role_ids = []
+
     request_data = dict(
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        role_ids=[]
+        role_ids=role_ids
     )
     resp = client.post("/users", json=request_data)
     assert resp.status_code == 200, resp.json['errors']
@@ -60,7 +63,7 @@ def test_create_user_happy(client):
     assert data['user']['user_id'] >= 0
 
 
-def test_create_user_missing_requried_field(client):
+def test_create_user_missing_required_field(client):
     request_data = dict(
         first_name="Jack",
         last_name="Karowac",
@@ -208,3 +211,68 @@ def test_update_roles_for_user(client):
     role_ids = set([r['role_id'] for r in roles])
     expected_ids = set(request_data['role_ids'])
     assert role_ids == expected_ids
+
+
+def test_create_patient_with_relationship(client):
+    _, create_resp = create_user_role(client, user_role="Doctor")
+    assert create_resp.status_code == 200
+    doctor_role = create_resp.json['user_role']['role_id']
+
+    _, create_resp = create_user_role(client, user_role="Patient")
+    assert create_resp.status_code == 200
+    patient_role = create_resp.json['user_role']['role_id']
+
+    _, resp = create_valid_user(client, role_ids=[doctor_role])
+    assert resp.status_code == 200
+    doctor = resp.json['user']
+
+    _, resp = create_valid_user(client, role_ids=[patient_role])
+    request_data = dict(
+        first_name="Jack",
+        last_name="Karowac",
+        dob="1997-03-17",
+        role_ids=[patient_role],
+        medical_staff_ids=[doctor['user_id']]
+    )
+
+    resp = client.post("/users", json=request_data)
+    assert resp.status_code == 200
+    assert 'medical_staff' in resp.json['user']
+    assert len(resp.json['user']['medical_staff']) == 1
+    assert resp.json['user']['medical_staff'][0]['user_id'] == doctor['user_id']
+
+def test_update_patient_with_relationship(client):
+    _, create_resp = create_user_role(client, user_role="Doctor")
+    assert create_resp.status_code == 200
+    doctor_role = create_resp.json['user_role']['role_id']
+
+    _, create_resp = create_user_role(client, user_role="Patient")
+    assert create_resp.status_code == 200
+    patient_role = create_resp.json['user_role']['role_id']
+
+    _, resp = create_valid_user(client, role_ids=[doctor_role])
+    assert resp.status_code == 200
+    doctor = resp.json['user']
+
+    _, resp = create_valid_user(client, role_ids=[patient_role])
+    request_data = dict(
+        first_name="Jack",
+        last_name="Karowac",
+        dob="1997-03-17",
+        role_ids=[patient_role]
+    )
+
+    resp = client.post("/users", json=request_data)
+    assert resp.status_code == 200
+    assert 'medical_staff' in resp.json['user']
+    assert len(resp.json['user']['medical_staff']) == 0
+
+    data = dict(
+        first_name="Jack",
+        last_name="Karowac",
+        dob="1997-03-17",
+        role_ids=[patient_role],
+        medical_staff_ids=[doctor['user_id']]
+    )
+    resp = client.post(f"/users/{resp.json['user']['user_id']}", json=data)
+    assert resp.json['user']['medical_staff'][0]['user_id'] == doctor['user_id']
