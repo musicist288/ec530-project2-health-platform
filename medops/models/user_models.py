@@ -4,8 +4,8 @@
 """
 from datetime import date
 import attr
-from attr import asdict
-from typing import Optional
+from attr import asdict, field
+from typing import Optional, Union
 from peewee import (
     AutoField,
     TextField,
@@ -72,12 +72,17 @@ class User:
     roles : list[UserRole]
         A list of roles to which the user is assigned. These must correspond
         to existing UserRoles in the database.
+    relationships: list[int]
+        A list of other users to which the this user is related. This field
+        should be used to associate doctors and nurses with patients.
     """
     user_id: Optional[int] = None
     dob: date
     first_name: str
     last_name: str
     roles: list[UserRole]
+    patients: list[int] = field(factory=list)
+    medical_staff: list[int] = field(factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -102,7 +107,7 @@ class UserModel(BaseModel):
     See the User class for a description of the parameters.
 
     Note that roles is not a database field. This allows the model to do
-    what is necesasry in terms of converting between UserRole instances
+    what is necessary in terms of converting between UserRole instances
     and whatever mechanism is implemented for storing the many-to-many
     relationship.
     """
@@ -123,12 +128,12 @@ class UserModel(BaseModel):
             dob=self.dob,
             first_name=self.first_name,
             last_name=self.last_name,
-            roles=self.roles
+            roles=self.roles,
+            patients=[p.patient for p in self.patients],
+            medical_staff=[m.professional for m in self.medical_staff]
         )
 
-    def save(self, *args, **kwargs):
-        """Save a model to the database."""
-        super().save(*args, **kwargs)
+    def _update_user_roles(self):
         query = UserRoleUserModel.select().where(
             UserRoleUserModel.user_id == self.user_id)
 
@@ -146,16 +151,50 @@ class UserModel(BaseModel):
                 (UserRoleUserModel.role_id == role_id) & (UserRoleUserModel.user_id == self.user_id))
             query.execute()
 
+    def save(self, *args, **kwargs):
+        """Save a model to the database."""
+        super().save(*args, **kwargs)
+        to_keep = {u.professional.user_id for u in self.medical_staff}
+        URM = UserRelationshipsModel
+        URM.delete().where((URM.patient == self.user_id) & (URM.professional.not_in(to_keep))).execute()
+        for r in self.medical_staff:
+            r.save()
+
+        to_keep = {u.patient.user_id for u in self.patients}
+        for r in self.patients:
+            r.save()
+        URM.delete().where((URM.professional == self.user_id) & (URM.patient.not_in(to_keep))).execute()
+        self._update_user_roles()
+
     @classmethod
     def from_dataclass(cls, user: User):
         """Create a DeviceModel instance from a data class instance."""
-        return cls(
+        instance = cls(
             user_id=user.user_id,
             dob=user.dob,
             first_name=user.first_name,
             last_name=user.last_name,
-            roles=user.roles
+            roles=user.roles,
+            patients=[],
+            medical_staff=[]
         )
+
+        URM = UserRelationshipsModel
+        for patient in user.patients:
+            exists = URM.select().where((URM.patient == patient.user_id) & (URM.professional == user.user_id))
+            if user.user_id and exists.count():
+                instance.patients.append(exists[0])
+            else:
+                instance.patients.append(URM(patient=patient.user_id, professional=instance))
+
+        for medical_staff in user.medical_staff:
+            exists = URM.select().where((URM.professional == medical_staff.user_id) & (URM.patient == user.user_id))
+            if user.user_id and exists.count():
+                instance.medical_staff.append(exists[0])
+            else:
+                instance.medical_staff.append(URM(professional_id=medical_staff.user_id, patient=instance))
+
+        return instance
 
 
 @register(USER_ROLE_TABLES)
@@ -182,12 +221,21 @@ class UserRoleModel(BaseModel):
             role_name=user_role.role_name
         )
 
-
 @register(USER_TABLES)
 class UserRoleUserModel(BaseModel):
     """A many to many replationship for associating users with roles."""
     user = ForeignKeyField(UserModel, backref="userroles")
     role = ForeignKeyField(UserRoleModel, backref="userroles")
+
+
+@register(USER_TABLES)
+class UserRelationshipsModel(BaseModel):
+    id = AutoField()
+    # IMPORTANT! The backrefs are swapped. If I'm a doctor with user_id 1,
+    # and UserRelationship record where professional.user_id == 1 contains my
+    # patients.
+    professional = ForeignKeyField(UserModel, backref="patients")
+    patient = ForeignKeyField(UserModel, backref="medical_staff")
 
 
 class UserModelStorage(SqliteStorage):
@@ -197,12 +245,25 @@ class UserModelStorage(SqliteStorage):
     def query(self):
         pass
 
-    def get(self, user_id: int) -> Optional[User]:
-        query = UserModel.select().where(UserModel.user_id == user_id)
-        if query.count() == 0:
-            return None
+    def get(self, user_id: Union[list, int]) -> Optional[User]:
+        if isinstance(user_id, int):
+            user_ids = [user_id]
+        else:
+            user_ids = user_id
 
-        return query[0].to_dataclass()
+        query = UserModel.select().where(UserModel.user_id.in_(user_ids))
+        if query.count() == 0:
+            result = [None] * len(user_ids)
+        else:
+            result = [u for u in query]
+
+        order = [None] * len(user_ids)
+        for idx, uid in enumerate(user_ids):
+            for user in result:
+                if user.user_id == uid:
+                    order[idx] = user.to_dataclass()
+
+        return order[0] if isinstance(user_id, int) else order
 
     def create(self, user: User) -> User:
         if user.user_id is not None:
@@ -210,6 +271,8 @@ class UserModelStorage(SqliteStorage):
 
         model = UserModel.from_dataclass(user)
         model.save()
+        [r.save() for r in model.patients]
+        [r.save() for r in model.medical_staff]
         return model.to_dataclass()
 
     def update(self, user: User) -> User:
@@ -222,6 +285,9 @@ class UserModelStorage(SqliteStorage):
 
     def delete(self, user_id: int) -> bool:
         UserRoleUserModel.delete().where(UserRoleUserModel.user_id == user_id).execute()
+        query = UserRelationshipsModel.delete().where(
+            (UserRelationshipsModel.professional == user_id) | (UserRelationshipsModel.patient == user_id))
+        query.execute()
         query = UserModel.delete().where(UserModel.user_id == user_id)
         n_rows_deleted = query.execute()
         return n_rows_deleted >= 1
@@ -260,6 +326,17 @@ class UserRoleModelStorage(SqliteStorage):
         query = UserRoleModel.delete().where(UserRoleModel.role_id == role_id)
         n_rows_deleted = query.execute()
         return n_rows_deleted >= 1
+
+
+class UserRelationshipStorage(SqliteStorage):
+    def query(self):
+        pass
+
+    def get(self, patient_id=None, professional_id=None):
+        pass
+
+    def create(self, patient_id=None, profession_id=None):
+        pass
 
 
 class UserStorage:
