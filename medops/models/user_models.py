@@ -260,7 +260,7 @@ class UserModelStorage(SqliteStorage):
         order = [None] * len(user_ids)
         for idx, uid in enumerate(user_ids):
             for user in result:
-                if user.user_id == uid:
+                if user is not None and user.user_id == uid:
                     order[idx] = user.to_dataclass()
 
         return order[0] if isinstance(user_id, int) else order
