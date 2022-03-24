@@ -38,7 +38,9 @@ def create_valid_user(client, role_ids=None):
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        role_ids=role_ids
+        role_ids=role_ids,
+        email="testing",
+        password="1234"
     )
     resp = client.post("/users", json=request_data)
     assert resp.status_code == 200, resp.json['errors']
@@ -159,7 +161,9 @@ def test_update_roles_for_user(client):
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        role_ids=[admin_id, patient_id]
+        role_ids=[admin_id, patient_id],
+        email="username",
+        password="1234"
     )
 
     resp = client.post("/users", json=request_data)
@@ -231,6 +235,8 @@ def test_create_patient_with_relationship(client):
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
+        email="testing",
+        password="1234",
         role_ids=[patient_role],
         medical_staff_ids=[doctor['user_id']]
     )
@@ -259,6 +265,8 @@ def test_update_patient_with_relationship(client):
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
+        email="testing",
+        password="1234",
         role_ids=[patient_role]
     )
 

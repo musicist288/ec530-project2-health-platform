@@ -29,6 +29,8 @@ class UserEndpoint:
             ("dob", lambda x: date.fromisoformat(x)),
             ("first_name", lambda x: str(x)),
             ("last_name", lambda x: str(x)),
+            ("email", lambda x: str(x)),
+            ("password", lambda x: str(x)),
         ]
 
         kwargs = {}
@@ -93,12 +95,17 @@ class UserEndpoint:
             return jsonify(user=user.to_json())
 
     @staticmethod
-    def get(user_id):
+    def get(user_id=None, email=None):
         """Stuff"""
-        user = models.get_storage("users").users.get(user_id)
+        if email is not None:
+            users = models.get_storage("users").users.query(email=email)
+            user = users[0] if len(users) else None
+        else:
+            user = models.get_storage("users").users.get(user_id=user_id)
+
         errors = []
         if not user:
-            errors.append(f"User {user_id} does not exist.")
+            errors.append(f"User {user_id or email} does not exist.")
             return error_response(errors=errors, status_code=404)
         else:
             return jsonify(user=user.to_json())
@@ -182,6 +189,11 @@ class UserEndpoint:
 class UserRoleEndpoint:
 
     @staticmethod
+    def list():
+        roles = models.get_storage("users").user_roles.query()
+        return jsonify(user_roles=[role.to_json() for role in roles])
+
+    @staticmethod
     def create():
         name = request.json.get("role_name", "")
         errors = []
@@ -225,9 +237,16 @@ class UserRoleEndpoint:
         return jsonify(user_role=role.to_json())
 
 
-@USERS_API_BLUEPRINT.route("", methods=["POST"])
+@USERS_API_BLUEPRINT.route("", methods=["GET", "POST"])
 def user_create():
-    return UserEndpoint.create()
+    if request.method == "GET":
+        email = request.args.get("email")
+        if not email:
+            return error_response(["Only queries by email are supported."])
+
+        return UserEndpoint.get(email=email)
+    else:
+        return UserEndpoint.create()
 
 
 @USERS_API_BLUEPRINT.route("/<int:user_id>", methods=["GET", "POST", "DELETE"])
@@ -255,6 +274,10 @@ def user_role(role_id: int):
     return "", 501
 
 
-@USERS_API_BLUEPRINT.route("/roles", methods=["POST"])
+@USERS_API_BLUEPRINT.route("/roles", methods=["GET", "POST"])
 def user_role_create():
-    return UserRoleEndpoint.create()
+    if request.method == "GET":
+        return UserRoleEndpoint.list()
+
+    if request.method == "POST":
+        return UserRoleEndpoint.create()

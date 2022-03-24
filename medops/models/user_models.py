@@ -47,6 +47,19 @@ class UserRole:
         json serializable"""
         return self.to_dict()
 
+def hashUserPassword(email: str, password: str):
+    if isinstance(email, str):
+        email = email.encode()
+
+    if isinstance(password, str):
+        password = password.encode()
+
+    import hashlib
+    hasher = hashlib.sha256()
+    hasher.update(email)
+    hasher.update(password)
+    return hasher.hexdigest()
+
 
 @attr.s(auto_attribs=True, kw_only=True)
 class User:
@@ -75,15 +88,24 @@ class User:
     dob: date
     first_name: str
     last_name: str
+    email: str
+    password: str
     roles: list[UserRole]
     patients: list[int] = field(factory=list)
     medical_staff: list[int] = field(factory=list)
 
+    def __init__(self, **kwargs):
+        password = kwargs.pop("password")
+        kwargs['password'] = hashUserPassword(kwargs['email'], password)
+        return super().__init__(**kwargs)
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        data = asdict(self)
+        return data
 
     def to_json(self):
         data = self.to_dict()
+        data.pop("password")
         data['dob'] = data['dob'].isoformat()
 
         for m in data['medical_staff']:
@@ -113,6 +135,8 @@ class UserModel(BaseModel):
     dob = DateField()
     first_name = TextField()
     last_name = TextField()
+    email = TextField()
+    password = TextField()
     roles = None
 
     def to_dataclass(self) -> User:
@@ -129,6 +153,8 @@ class UserModel(BaseModel):
                 first_name=p.patient.first_name,
                 last_name=p.patient.last_name,
                 roles=p.patient.roles,
+                email=p.patient.email,
+                password=p.patient.password,
                 patients=[],
                 medical_staff=[]
             ))
@@ -141,6 +167,8 @@ class UserModel(BaseModel):
                 first_name=p.professional.first_name,
                 last_name=p.professional.last_name,
                 roles=p.professional.roles,
+                email=p.patient.email,
+                password=p.patient.password,
                 patients=[],
                 medical_staff=[]
             ))
@@ -152,7 +180,9 @@ class UserModel(BaseModel):
             last_name=self.last_name,
             roles=self.roles,
             patients=patients,
-            medical_staff=medical_staff
+            medical_staff=medical_staff,
+            email=self.email,
+            password=self.password
         )
 
     def _update_user_roles(self):
@@ -197,6 +227,8 @@ class UserModel(BaseModel):
             first_name=user.first_name,
             last_name=user.last_name,
             roles=user.roles,
+            password=user.password,
+            email=user.email,
             patients=[],
             medical_staff=[]
         )
@@ -264,8 +296,9 @@ class UserModelStorage(SqliteStorage):
     """Storage class for persisting UserModels to a sqlite database"""
     tables = USER_TABLES
 
-    def query(self):
-        pass
+    def query(self, email=None):
+        query = UserModel.select().where(UserModel.email == email)
+        return [u.to_dataclass() for u in query]
 
     def get(self, user_id: Union[list, int]) -> Optional[User]:
         if isinstance(user_id, int):
@@ -320,7 +353,8 @@ class UserRoleModelStorage(SqliteStorage):
     tables = USER_ROLE_TABLES
 
     def query(self):
-        pass
+        query = UserRoleModel.select()
+        return [r.to_dataclass() for r in query]
 
     def get(self, role_id: int) -> Optional[UserRole]:
         query = UserRoleModel.select().where(UserRoleModel.role_id == role_id)

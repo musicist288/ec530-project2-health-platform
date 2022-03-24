@@ -62,7 +62,7 @@ def test_create_user(user_storage):
     role = user_storage.user_roles.create(role)
 
     dob = date(year=1990, month=12, day=15)
-    user = User(dob=dob, first_name="John", last_name="Doe", roles=[role])
+    user = User(dob=dob, first_name="John", last_name="Doe", roles=[role], email="testing", password="1234")
     created = user_storage.users.create(user)
     assert created.user_id is not None
     assert created.roles[0].role_id == role.role_id
@@ -75,7 +75,9 @@ def test_delete_user(user_storage):
     user = User(dob=date(year=1990, month=1, day=1),
                 first_name="John",
                 last_name="Doe",
-                roles=[role])
+                roles=[role],
+                email="testing",
+                password="1234")
     created = user_storage.users.create(user)
     assert created.user_id is not None
     assert created.roles[0].role_id == role.role_id
@@ -94,7 +96,9 @@ def test_update_user(user_storage):
     user = User(dob=date(year=1990, month=1, day=1),
                 first_name="John",
                 last_name="Doe",
-                roles=[role])
+                roles=[role],
+                email="testing",
+                password="1234")
     created = user_storage.users.create(user)
     assert created.user_id is not None
     assert created.roles[0].role_id == role.role_id
@@ -116,7 +120,9 @@ def test_update_user_roles(user_storage):
     user = User(dob=date(year=1990, month=1, day=1),
                 first_name="John",
                 last_name="Doe",
-                roles=[admin])
+                roles=[admin],
+                email="testing",
+                password="1234")
     user = user_storage.users.create(user)
 
     user.roles.append(patient)
@@ -150,6 +156,8 @@ def test_user_relationship_on_create(user_storage):
     doctor = User(dob=date(year=1990, month=1, day=1),
                   first_name="Doctor",
                   last_name="Doe",
+                  email="testing",
+                  password="1234",
                   roles=[doctor_role])
     doctor = user_storage.users.create(doctor)
     assert doctor.user_id is not None
@@ -158,6 +166,8 @@ def test_user_relationship_on_create(user_storage):
     patient = User(dob=date(year=1990, month=1, day=1),
                    first_name="Patient",
                    last_name="Doe",
+                   email="testing",
+                   password="1234",
                    roles=[patient_role])
 
     patient.medical_staff.append(doctor)
@@ -177,11 +187,15 @@ def test_user_relationships_on_update(user_storage):
     doctor = User(dob=date(year=1990, month=1, day=1),
                   first_name="Doctor",
                   last_name="Doe",
+                  email="testing",
+                  password="1234",
                   roles=[doctor_role])
     doctor = user_storage.users.create(doctor)
     patient = User(dob=date(year=1990, month=1, day=1),
                    first_name="Patient",
                    last_name="Doe",
+                   email="testing",
+                   password="1234",
                    roles=[patient_role])
     patient = user_storage.users.create(patient)
     doctor.patients.append(patient)
@@ -198,11 +212,15 @@ def test_remove_user_relationship(user_storage):
     doctor = User(dob=date(year=1990, month=1, day=1),
                   first_name="Doctor",
                   last_name="Doe",
+                  email="testing",
+                  password="1234",
                   roles=[doctor_role])
     doctor = user_storage.users.create(doctor)
     patient = User(dob=date(year=1990, month=1, day=1),
                    first_name="Patient",
                    last_name="Doe",
+                   email="testing",
+                   password="1234",
                    roles=[patient_role])
     patient = user_storage.users.create(patient)
     doctor.patients.append(patient)
@@ -223,6 +241,8 @@ def create_user(name, roles, storage):
     user = User(dob=date(year=1990, month=1, day=1),
                 first_name="Doctor_Patient_1",
                 last_name="Doe",
+                email="testing",
+                password="1234",
                 roles=roles)
     return storage.users.create(user)
 

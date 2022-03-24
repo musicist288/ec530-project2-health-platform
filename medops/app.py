@@ -19,6 +19,7 @@ import atexit
 import os
 import dotenv
 from flask import Flask
+from flask_cors import CORS
 from .apis import (
     DEVICES_API_BLUEPRINT,
     DATA_API_BLUEPRINT,
@@ -34,6 +35,7 @@ APP.register_blueprint(DATA_API_BLUEPRINT, url_prefix="/data")
 APP.register_blueprint(MESSAGES_API_BLUEPRINT, url_prefix="/messages")
 APP.register_blueprint(USERS_API_BLUEPRINT, url_prefix="/users")
 APP.register_blueprint(S2T_BLUEPRINT_API, url_prefix="/s2t")
+CORS(APP)
 
 class Config:
     def __init__(self):
