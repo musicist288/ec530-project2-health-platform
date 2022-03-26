@@ -43,6 +43,8 @@ class UserEndpoint:
                     kwargs[field] = value
                 except Exception as err:
                     errors.append(f"{field} error: {str(err)}")
+        if errors:
+            return error_response(errors, 422)
 
         existing = models.get_storage("users").users.query(email=data['email'])
         if existing:
@@ -99,6 +101,16 @@ class UserEndpoint:
             user.password = models.hashUserPassword(user.email, user.password)
             user = models.get_storage("users").users.create(user)
             return jsonify(user=user.to_json())
+
+    @staticmethod
+    def query(role=None):
+        roles = models.get_storage("users").user_roles.query(role_name=role)
+        if not roles:
+            users = []
+        else:
+            users = models.get_storage("users").users.query(roles=roles)
+
+        return jsonify(users=[u.to_json() for u in users])
 
     @staticmethod
     def get(user_id=None, email=None):
@@ -267,10 +279,15 @@ class UserRoleEndpoint:
 def user_create():
     if request.method == "GET":
         email = request.args.get("email")
-        if not email:
-            return error_response(["Only queries by email are supported."])
+        role = request.args.get("role")
 
-        return UserEndpoint.get(email=email)
+        if not email and not role:
+            return error_response(["Only queries by email or role are supported."])
+
+        if email is not None:
+            return UserEndpoint.get(email=email)
+        else:
+            return UserEndpoint.query(role=role)
     else:
         return UserEndpoint.create()
 

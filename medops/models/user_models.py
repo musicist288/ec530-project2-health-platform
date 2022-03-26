@@ -294,9 +294,23 @@ class UserModelStorage(SqliteStorage):
     """Storage class for persisting UserModels to a sqlite database"""
     tables = USER_TABLES
 
-    def query(self, email=None):
-        query = UserModel.select().where(UserModel.email == email)
-        return [u.to_dataclass() for u in query]
+    def query(self, email=None, roles=None):
+        query = UserModel.select()
+        if email is not None:
+            query = query.where(UserModel.email == email)
+
+        users = [u.to_dataclass() for u in query]
+
+        if roles is not None:
+            ids = set([r.role_id for r in roles])
+            to_return = []
+            for user in users:
+                if set([r.role_id for r in user.roles]) & ids:
+                    to_return.append(user)
+
+            users = to_return
+
+        return users
 
     def get(self, user_id: Union[list, int]) -> Optional[User]:
         if isinstance(user_id, int):
@@ -350,8 +364,11 @@ class UserRoleModelStorage(SqliteStorage):
     """Storage class for persisting UserRoleModels to a sqlite database"""
     tables = USER_ROLE_TABLES
 
-    def query(self):
+    def query(self, role_name=None):
         query = UserRoleModel.select()
+        if role_name is not None:
+            query = query.where(UserRoleModel.role_name == role_name)
+
         return [r.to_dataclass() for r in query]
 
     def get(self, role_id: int) -> Optional[UserRole]:
