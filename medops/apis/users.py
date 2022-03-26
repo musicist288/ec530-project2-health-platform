@@ -13,6 +13,8 @@ from flask import (
 
 from .common import error_response
 from .. import models
+import logging
+logger = logging.getLogger()
 
 USERS_API_BLUEPRINT = Blueprint("users", __name__)
 
@@ -44,11 +46,13 @@ class UserEndpoint:
                 except Exception as err:
                     errors.append(f"{field} error: {str(err)}")
         if errors:
+            logger.debug("Missing required field: ", errors)
             return error_response(errors, 422)
 
         existing = models.get_storage("users").users.query(email=data['email'])
         if existing:
             errors.append(f"User {data['email']} already exists.")
+            logger.debug("Trying to create duplicate user: ", errors)
             return error_response(errors=errors, status_code=409)
 
         if "role_ids" not in data:
