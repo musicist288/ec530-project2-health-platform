@@ -164,7 +164,7 @@ class UserEndpoint:
 
         if "patient_ids" in patch_data:
             if patch_data['patient_ids']:
-                patients = models.get_storage("users").get(patch_data['patient_ids'])
+                patients = models.get_storage("users").users.get(patch_data['patient_ids'])
             else:
                 patients = []
 
