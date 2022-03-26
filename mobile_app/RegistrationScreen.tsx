@@ -49,6 +49,13 @@ export default function RegistrationScreen({navigation}) {
 
     const [availableRoles, onAvailableRoleChange] = useState([])
 
+    function formatDate(d: Date) {
+        let year = d.getFullYear().toString();
+        let month = d.getMonth().toString().padStart(2, "0");
+        let date = d.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${date}`;
+    }
+
     const onRegister = async () => {
         let resp = null;
         try {
@@ -57,7 +64,7 @@ export default function RegistrationScreen({navigation}) {
                 body: JSON.stringify({
                     first_name: firstName,
                     last_name: lastName,
-                    dob: dob,
+                    dob: formatDate(dob),
                     email: username,
                     password: password,
                     role_ids: [role]

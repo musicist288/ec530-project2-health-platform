@@ -165,8 +165,8 @@ class UserModel(BaseModel):
                 first_name=p.professional.first_name,
                 last_name=p.professional.last_name,
                 roles=p.professional.roles,
-                email=p.patient.email,
-                password=p.patient.password,
+                email=p.professional.email,
+                password=p.professional.password,
                 patients=[],
                 medical_staff=[]
             ))
