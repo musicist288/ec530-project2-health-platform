@@ -111,12 +111,14 @@ class User:
             m.pop('medical_staff')
             m.pop('patients')
             m.pop("password")
+            m.pop("roles")
 
         for m in data['patients']:
             m['dob'] = m['dob'].isoformat()
             m.pop('patients')
             m.pop('medical_staff')
             m.pop("password")
+            m.pop("roles")
         return data
 
 
