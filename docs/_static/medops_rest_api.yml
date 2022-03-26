@@ -250,7 +250,9 @@ paths:
       description: |
         When updating a user, whatever role IDs are included will be what
         is set for the user. Any roles the user once had that are omitted
-        from this list will get deleted.
+        from this list will get deleted. Additionally any relationships
+        to patients or medical staff will be deleted if omitted from their
+        respective lists.
       tags:
         - "Users"
       requestBody:
@@ -359,6 +361,49 @@ paths:
         "422":
           description: |
             There was one or more errors due to a malformed query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+  /users/login:
+    post:
+      summary: "Login"
+      tags:
+        - Users
+      requestBody:
+        content:
+          application:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: "string"
+                password:
+                  type: "string"
+      responses:
+        "201":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserFull"
+        "401":
+          description: "Unauthorized. The credentials were not correct"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+        "422":
+          description: Required data is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error-UnprocessableEntity"
+        "404":
+          description: The user doesn't exist. (Does security really matter? Reall?)
           content:
             application/json:
               schema:
@@ -632,11 +677,15 @@ components:
     UserBase:
       type: object
       required:
+        - "email"
         - "first_name"
         - "last_name"
         - "dob"
         - "roles"
       properties:
+        email:
+          type: string
+          description: The user's email used for login.
         first_name:
           type: string
           description: The first naem of the user.
@@ -647,7 +696,15 @@ components:
           type: string
           format: date
           description: "Date of birth"
-    UserCreate:
+    UserBaseWithID:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          properties:
+            user_id:
+              type: integer
+    UserUpdate:
       allOf:
         - $ref: "#/components/schemas/UserBase"
         - type: object
@@ -656,18 +713,39 @@ components:
               type: array
               items:
                 type: integer
-    UserUpdate:
+            medical_staff_ids:
+              type: array
+              items:
+                type: integer
+            patient_ids:
+              type: array
+              items:
+                type: integer
+    UserCreate:
       allOf:
-        - $ref: "#/components/schemas/UserCreate"
+        - $ref: "#/components/schemas/UserUpdate"
+        - type: object
+          properties:
+            password:
+              type: string
+              format: password
     UserFull:
       allOf:
-        - $ref: "#/components/schemas/UserBase"
+        - $ref: "#/components/schemas/UserBaseWithID"
         - type: object
           properties:
             roles:
               type: array
               items:
                   $ref: "#/components/schemas/UserRoleFull"
+            medical_staff:
+              type: array
+              items:
+                  $ref: "#/components/schemas/UserBase"
+            patients:
+              type: array
+              items:
+                  $ref: "#/components/schemas/UserBase"
     S2TResult:
       type: object
       properties:
