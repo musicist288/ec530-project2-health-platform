@@ -35,14 +35,19 @@ class UserEndpoint:
 
         kwargs = {}
         for field, func in required_fields:
-            if field not in data:
+            if field not in data or not data[field]:
                 errors.append(f"Missing required field: {field}")
             else:
                 try:
                     value = func(data[field])
                     kwargs[field] = value
                 except Exception as err:
-                    errors.append(f"Error creating field: {str(err)}")
+                    errors.append(f"{field} error: {str(err)}")
+
+        existing = models.get_storage("users").users.query(email=data['email'])
+        if existing:
+            errors.append(f"User {data['email']} already exists.")
+            return error_response(errors=errors, status_code=409)
 
         if "role_ids" not in data:
             errors.append("Missing required field: role_ids")
@@ -91,6 +96,7 @@ class UserEndpoint:
             return error_response(errors)
         else:
             user = models.User(**kwargs)
+            user.password = models.hashUserPassword(user.email, user.password)
             user = models.get_storage("users").users.create(user)
             return jsonify(user=user.to_json())
 
