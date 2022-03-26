@@ -7,6 +7,7 @@ from .user_models import UserStorage
 from .base import Storage
 from .device_models import Device # noqa: F401
 from .user_models import User, UserRole # noqa: F401
+from .user_models import hashUserPassword # noqa: F401
 from .chat_model import MessageStore
 
 from flask import current_app

@@ -95,8 +95,6 @@ class User:
     medical_staff: list[int] = field(factory=list)
 
     def __init__(self, **kwargs):
-        password = kwargs.pop("password")
-        kwargs['password'] = hashUserPassword(kwargs['email'], password)
         return super().__init__(**kwargs)
 
     def to_dict(self) -> dict:

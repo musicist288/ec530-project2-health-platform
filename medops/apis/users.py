@@ -191,6 +191,26 @@ class UserEndpoint:
         models.get_storage("users").users.delete(user_id)
         return "", 201
 
+    @staticmethod
+    def login(username, password):
+        errors = []
+        if not username or not password:
+            errors.append("Username and password are both required.")
+            return error_response(errors=errors, status_code=422)
+
+        users = models.get_storage("users").users.query(email=username)
+        user: models.User = users[0] if len(users) else None
+        if not user:
+            errors.append("User does not exit.")
+            return error_response(errors=errors, status_code=404)
+        else:
+            hashed = models.hashUserPassword(user.email, password)
+            if hashed != user.password:
+                print(hashed, user.password)
+                errors.append("Incorrect password.")
+                return error_response(errors=errors, status_code=401)
+
+        return jsonify(user=user.to_json()), 201
 
 class UserRoleEndpoint:
 
@@ -287,3 +307,9 @@ def user_role_create():
 
     if request.method == "POST":
         return UserRoleEndpoint.create()
+
+@USERS_API_BLUEPRINT.route("/login", methods=["POST"])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    return UserEndpoint.login(username, password)
