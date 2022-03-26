@@ -30,7 +30,7 @@ def client():
     cleanup()
 
 
-def create_valid_user(client, role_ids=None):
+def create_user(client, username="default", role_ids=None):
     if not role_ids:
         role_ids = []
 
@@ -39,13 +39,16 @@ def create_valid_user(client, role_ids=None):
         last_name="Karowac",
         dob="1997-03-17",
         role_ids=role_ids,
-        email="testing",
+        email=username,
         password="1234"
     )
-    resp = client.post("/users", json=request_data)
+
+    return request_data, client.post("/users", json=request_data)
+
+def create_valid_user(client, username="default_username", role_ids=None):
+    request_data, resp = create_user(client, username, role_ids)
     assert resp.status_code == 200, resp.json['errors']
     return request_data, resp
-
 
 def test_create_user_happy(client):
     request_data, resp = create_valid_user(client)
@@ -70,22 +73,34 @@ def test_create_user_missing_required_field(client):
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        role_ids=[]
+        role_ids=[],
+        email="test_email",
+        password="password"
     )
-    for field in ['first_name', 'last_name', 'dob', 'role_ids']:
+    for i, field in enumerate(['first_name', 'last_name', 'dob', 'role_ids']):
+        request_data['email'] = f'email{str(i)}'
         r = copy.copy(request_data)
         r.pop(field)
         resp = client.post("/users", json=r)
         err_msg = f"{field} was omitted but the user was still created"
         assert resp.status_code == 422, err_msg
 
+        if field == 'role_ids':
+            continue
+        r = copy.copy(request_data)
+        r[field] = None
+        resp = client.post("/users", json=r)
+        err_msg = f"{field} was blank but the user was still created"
+        assert resp.status_code == 422, err_msg
 
 def test_create_user_invalid_date(client):
     request_data = dict(
         first_name="Jack",
         last_name="Karowac",
         dob="invalid_date",
-        role_ids=[]
+        role_ids=[],
+        email="test_email",
+        password="unit tests",
     )
     resp = client.post("/users", json=request_data)
     assert resp.status_code == 422
@@ -226,16 +241,15 @@ def test_create_patient_with_relationship(client):
     assert create_resp.status_code == 200
     patient_role = create_resp.json['user_role']['role_id']
 
-    _, resp = create_valid_user(client, role_ids=[doctor_role])
+    _, resp = create_valid_user(client, username="Doctor", role_ids=[doctor_role])
     assert resp.status_code == 200
     doctor = resp.json['user']
 
-    _, resp = create_valid_user(client, role_ids=[patient_role])
     request_data = dict(
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        email="testing",
+        email="Patient",
         password="1234",
         role_ids=[patient_role],
         medical_staff_ids=[doctor['user_id']]
@@ -247,6 +261,18 @@ def test_create_patient_with_relationship(client):
     assert len(resp.json['user']['medical_staff']) == 1
     assert resp.json['user']['medical_staff'][0]['user_id'] == doctor['user_id']
 
+def test_no_duplicate_usernames(client):
+    _, create_resp = create_user_role(client, user_role="Doctor")
+    assert create_resp.status_code == 200
+    doctor_role = create_resp.json['user_role']['role_id']
+
+    _, resp = create_user(client, username="Doctor", role_ids=[doctor_role])
+    assert resp.status_code == 200
+    _, resp = create_user(client, username="Doctor", role_ids=[doctor_role])
+    assert resp.status_code == 409
+    _, resp = create_user(client, username="Doctor2", role_ids=[doctor_role])
+    assert resp.status_code == 200
+
 def test_update_patient_with_relationship(client):
     _, create_resp = create_user_role(client, user_role="Doctor")
     assert create_resp.status_code == 200
@@ -256,16 +282,15 @@ def test_update_patient_with_relationship(client):
     assert create_resp.status_code == 200
     patient_role = create_resp.json['user_role']['role_id']
 
-    _, resp = create_valid_user(client, role_ids=[doctor_role])
+    _, resp = create_valid_user(client, username="Doctor", role_ids=[doctor_role])
     assert resp.status_code == 200
     doctor = resp.json['user']
 
-    _, resp = create_valid_user(client, role_ids=[patient_role])
     request_data = dict(
         first_name="Jack",
         last_name="Karowac",
         dob="1997-03-17",
-        email="testing",
+        email="Patient",
         password="1234",
         role_ids=[patient_role]
     )
