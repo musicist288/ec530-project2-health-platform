@@ -27,32 +27,60 @@ export default function RegistrationScreen({navigation}) {
   const [role, onRoleChange] = useState("")
   const [password, onPasswordChange] = useState("")
   const [dob, onDOBChange] = useState("")
+  const [error, onError] = useState("")
+
+  useEffect(() => {
+    // Reset all the state on blur
+    const unsubscribe = navigation.addListener('blur', () => {
+      onUsernameChange("");
+      onPasswordChange("");
+      onFirstName("");
+      onLastName("");
+      onDOBChange("");
+      onError("");
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const [availableRoles, onAvailableRoleChange] = useState([])
 
   const onRegister = async () => {
-    let resp = await fetch(base + "/users", {
-      method: "POST",
-      body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
-        dob: dob,
-        email: username,
-        password: password,
-        role_ids: [role]
-      }),
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8"
-      }
-    })
+    let resp = null;
+    try {
+      resp = await fetch(base + "/users", {
+        method: "POST",
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          dob: dob,
+          email: username,
+          password: password,
+          role_ids: [role]
+        }),
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8"
+        }
+      })
+    }
+    catch(err) {
+      onError("There was an error connecting to the backend.");
+      console.error(err);
+      return;
+    }
 
     if (resp.status == 200) {
       let data = await resp.json()
-      console.log(data);
+      navigation.navigate("Login")
     }
     else {
-      let data = await resp.text();
-      console.error(data);
+      try {
+        let json = await resp.json();
+        onError((json.errors || []).join("\n"))
+      }
+      catch (err) {
+        let data = await resp.text();
+        console.error("Non-json response", data);
+      }
     }
   }
 
@@ -103,21 +131,29 @@ export default function RegistrationScreen({navigation}) {
                 placeholder="Password"
                 secureTextEntry={true}
                 onChangeText={text => onPasswordChange(text)} style={styles.textInput} />
-      <Button
-        title="Register"
-        style={styles.submitButton}
-        onPress={() => onRegister()} />
-      <Button
-        title="Log In"
-        style={styles.submitButton}
-        onPress={() => navigation.navigate("Login")} />
+      <View style={styles.buttonWrapper}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+      <View style={styles.buttonWrapper}>
+        <Button
+          title="Register"
+          onPress={() => onRegister()} />
+      </View>
+      <View style={styles.buttonWrapper}>
+        <Button
+          title="Log In"
+          onPress={() => navigation.navigate("Login")} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  submitButton: {
-    width: 100,
+  errorText: {
+    color: "#f35353",
+    marginBotton: 20
+  },
+  buttonWrapper: {
     marginBottom: 10
   },
   textInput: {

@@ -53,7 +53,7 @@ export default function LoginScreen({route, navigation}) {
             <Text>DOB: {user.dob}</Text>
             <Text>Medical Staff</Text>
             {staffRendering}
-            <Button title="Log Out" onPress={() => navigation.navigate("LogIn")} />
+            <Button title="Log Out" onPress={() => navigation.navigate("Login")} />
         </View>
     );
 }

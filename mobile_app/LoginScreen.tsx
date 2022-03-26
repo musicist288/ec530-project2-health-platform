@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 
 const base = "http://127.0.0.1:5000"
+
 async function getRoles() {
   let response = await fetch(base + "/users/roles");
   let body = await response.json();
@@ -24,10 +25,38 @@ export default function LoginScreen({navigation}) {
   const [password, onPasswordChange] = useState("")
   const [error, onError] = useState("")
 
-  const onLogin = async () => {
-    let resp = await fetch(base + `/users?email=${username}`)
+  useEffect(() => {
+    // Reset all the state on blur
+    const unsubscribe = navigation.addListener('blur', () => {
+      onUsernameChange("");
+      onPasswordChange("");
+      onError("");
+    });
+    return unsubscribe;
+  }, [navigation]);
 
-    if (resp.status == 200) {
+  const onLogin = async () => {
+    let resp = null;
+    try {
+      resp = await fetch(base + `/users/login`, {
+        method: "POST",
+        body: JSON.stringify({
+          username: username,
+          password: password
+        }),
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8"
+        }
+      })
+    } catch(err) {
+      onError("There was an error connecting to the backend.")
+    }
+
+    if (resp == null) {
+      return;
+    }
+
+    if (resp.status == 201) {
         let data = await resp.json()
         let user = data.user;
         navigation.navigate("User View", {user: user})
@@ -54,17 +83,24 @@ export default function LoginScreen({navigation}) {
                 secureTextEntry={true}
                 onChangeText={text => onPasswordChange(text)} style={styles.textInput} />
       <Text>{error}</Text>
-      <Button
-        title="Log In"
-        onPress={() => onLogin()} />
-      <Button
-        title="Register"
-        onPress={() => navigation.navigate("Registration")} />
+      <View style={styles.buttonWrapper}>
+        <Button
+          title="Log In"
+          onPress={() => onLogin()} />
+      </View>
+      <View style={styles.buttonWrapper}>
+        <Button
+          title="Register"
+          onPress={() => navigation.navigate("Registration")} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  buttonWrapper: {
+    marginBottom: 10
+  },
   textInput: {
     height: 40,
     paddingHorizontal: 5,
