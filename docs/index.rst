@@ -34,6 +34,7 @@ you're in the right spot, check out the contents below.
    :maxdepth: 2
 
    api
+   demos
    chat
    devices
    data
